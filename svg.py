@@ -2,23 +2,22 @@ from wand.api import library
 import wand.color
 import wand.image
 
-CAMOUFLAGE_GREEN = (120, 134, 107)
-LAVENDER_PURPLE  = (150, 123, 182)
 BATTLESHIP_GREY  = (132, 132, 130)
 LAVENDER_BLUSH   = (255, 240, 245)
 GRAY             = (128, 128, 128)
-LIGHT_PINK       = (255, 182, 193)	 
-LIGHT_MOSS_GREEN = (173, 223, 173)
-LAVENDER_GRAY    = (196, 195, 208)
-
+DIAMOND          = (185, 242, 255)
+LIGHT_GRAY_CH    = (221, 221, 221)
+BRINK_PINK       = (251, 96,  127)
+SHAMROCK_GREEN   = (  0, 158, 96 )
+PINK             = (255, 218, 235)
 
 def main():
     w_h = [(140, 256), (140, 240), (93, 114)]
     sprites = ["diatonic", "chromatic", "microtonal"]
     
     names = ["regular", "right", "wrong", "not_used"]
-    colors_fill = [LAVENDER_BLUSH, LIGHT_MOSS_GREEN, LIGHT_PINK, LAVENDER_GRAY]
-    colors_stroke = [GRAY, CAMOUFLAGE_GREEN, LAVENDER_PURPLE, BATTLESHIP_GREY]
+    colors_fill = [LAVENDER_BLUSH, DIAMOND, PINK, LIGHT_GRAY_CH]
+    colors_stroke = [GRAY, SHAMROCK_GREEN, BRINK_PINK, BATTLESHIP_GREY]
     
     for s, wh in zip(sprites, w_h):
         width, height = wh

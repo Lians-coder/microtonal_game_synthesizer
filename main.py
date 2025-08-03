@@ -11,8 +11,8 @@ from arcade.gui import (
     UIView,
     UIGridLayout,
 )
-from random import randint, choice
-# import textwrap
+from random import choice
+from collections import defaultdict
 import wave
 
 PITCH = 440
@@ -28,7 +28,6 @@ micro = list(filter(lambda m: m, MICROTONAL))
 SCALE_CHROMATIC  = [note for pair in zip(DIATONIC, CHROMATIC) for note in pair if note]
 SCALE_MICROTONAL = [note for pair in zip(SCALE_CHROMATIC, micro) for note in pair if note]
 
-# TEX_SLIDER_THUMB_BLUE   = a.load_texture(":resources:gui_basic_assets/slider/thumb_blue.png")
 TEX_TOGGLE_RED          = a.load_texture(":resources:gui_basic_assets/toggle/red.png")
 TEX_TOGGLE_GREEN        = a.load_texture(":resources:gui_basic_assets/toggle/green.png")
 TEX_CHECKBOX_CHECKED    = a.load_texture(":resources:gui_basic_assets/checkbox/blue_check.png")
@@ -47,12 +46,11 @@ FONT      = "Castellar"
 FONT_MENU = "Agency FB"
 
 GAME_VARIANT     = "Challenge"
-SELECTED         = ""
+SELECTED         = "All notes"
 OCTAVE_MODIFIERS = [1,]
 QUESTIONS        = 30
 
-STATISTICS = []
-
+ANSWERS = []
 
 class SliderDisable(UISlider):
     def __init__(self, *args, **kwargs):
@@ -62,61 +60,52 @@ class SliderDisable(UISlider):
         if not self.enabled:
             return
         return super().on_event(event)
-    
+
+# TODO: Add ABOUT button
+# TODO Add Statistics view - disabled if not played       
+# TODO set yellowish value for gb
     
 class MenuView(UIView):
     def __init__(self):        
         super().__init__()
         self.ui.enable()
-        self.background_color = a.color.LAVENDER_BLUSH
+        self.background_color = a.color.LAVENDER_BLUSH       
         
-        # TODO: Add ABOUT button
-        # TODO Add Statistics view - disabled if not played
-        
-        grid = UIGridLayout(
+        self.grid = UIGridLayout(
             horizontal_spacing=150, 
             vertical_spacing=80, 
             column_count=2, 
             row_count=4)         
-        self.ui.add(UIAnchorLayout(children=[grid]))
-            
+        self.ui.add(UIAnchorLayout(children=[self.grid]))            
+        
+        self.title()
+        self.add_pitch_things()
+        self.set_notes_selected()
+        self.set_octave_checkboxes()
+        self.set_game_variant()
+        self.set_questions()
+        self.start()
+        
+    def title(self):    
         title = UILabel(
             text="Menu Screen",
             font_name=FONT,
             font_size=32,
             text_color=a.color.GRAY)
-        grid.add(title, column=0, column_span=2, row=0)
-
-        self.pitch_slider = UISlider(
-            value=440,
-            min_value=400,
-            max_value=480,
-            step=1)
-        self.pitch_label = UILabel(
-            text=f"Pitch: A = {PITCH} Hz",
-            font_name=FONT_MENU,
-            font_size=26,
-            text_color=a.color.GRAY)
-        grid.add(UIBoxLayout(
-            align="center",
-            space_between=20,
-            children=[self.pitch_label, self.pitch_slider]),
-            column=0,row=1)
+        self.grid.add(title, column=0, column_span=2, row=0)
         
-        @self.pitch_slider.event("on_change")
-        def on_slider_change(event):
-            pitch = int(self.pitch_slider.value)
-            self.pitch_label.text = f"Pitch: A = {pitch} Hz"
-            global PITCH
-            PITCH = pitch
-            wave.set_frequencies(PITCH)
-
+    def set_game_variant(self):          
         self.variant = UIDropdown(
             default="Challenge",
             options=["Challenge", "Training", "Synthesizer"])
-        self.sync_game_variant() 
-        
-        grid.add(UIBoxLayout(
+        self.variant_warning = UILabel(
+                    text="\n",
+                    font_name=FONT_MENU,
+                    font_size=16,
+                    text_color=a.color.GRAY)
+        self.sync_game_variant()  
+              
+        self.grid.add(UIBoxLayout(
             align="center",
             space_between=20,
             children=[
@@ -125,7 +114,8 @@ class MenuView(UIView):
                     font_name=FONT_MENU,
                     font_size=26,
                     text_color=a.color.GRAY),
-                self.variant]),
+                self.variant,
+                self.variant_warning]),
             column=1, row=1)        
         
         @self.variant.event("on_change")
@@ -133,16 +123,20 @@ class MenuView(UIView):
             var = self.variant.value     
             if var == "Synthesizer":
                 self.question_slider.enabled = False
+                self.variant_warning.text = "All notes will be playable"
             else:
                 self.question_slider.enabled = True
+                self.variant_warning.text = "\n"
             global GAME_VARIANT
             GAME_VARIANT = var
 
+    def set_notes_selected(self):
         self.notes = UITextureToggle(            
                 on_texture=TEX_TOGGLE_GREEN,
                 off_texture=TEX_TOGGLE_RED,
-                value=True)
-        grid.add(UIBoxLayout(
+                value=True)                      
+        self.sync_selected()        
+        self.grid.add(UIBoxLayout(
             vertical=False,
             align="left",
             space_between=20,
@@ -157,17 +151,18 @@ class MenuView(UIView):
                     text="All notes",
                     font_name=FONT_MENU,
                     font_size=26,
-                    text_color=a.color.GRAY)]),
+                    text_color=a.color.GRAY)]),            
             column=0, row=3)
         
         @self.notes.event("on_change")
         def on_change_notes(event):
             global SELECTED
             if self.notes.value:
-                SELECTED = "all"
+                SELECTED = "All notes"
             else:
-                SELECTED = "chromatic"
-  
+                SELECTED = "Chromatic"                
+
+    def set_octave_checkboxes(self):   
         self.oct_4 = UITextureToggle(
             on_texture=TEX_CHECKBOX_CHECKED,
             off_texture=TEX_CHECKBOX_UNCHECKED,
@@ -182,11 +177,9 @@ class MenuView(UIView):
             on_texture=TEX_CHECKBOX_CHECKED,
             off_texture=TEX_CHECKBOX_UNCHECKED,
             width=52,
-            height=52)
-                    
-        self.sync_octave_checkboxes()    
-                
-        grid.add(UIBoxLayout(
+            height=52)                    
+        self.sync_octave_checkboxes()                   
+        self.grid.add(UIBoxLayout(
             vertical=False,
             align="center",
             space_between=20,
@@ -216,8 +209,7 @@ class MenuView(UIView):
                         font_name=FONT_MENU,
                         font_size=20,
                         text_color=a.color.GRAY),
-                    self.oct_6,])
-                ]),
+                    self.oct_6,])]),
             column=0, row=2)
         
         global OCTAVE_MODIFIERS
@@ -244,18 +236,20 @@ class MenuView(UIView):
         @self.oct_6.event("on_change")
         def on_check_oct_6(event):
             set_octave_modifiers(self.oct_6.value, 4)  
-        
+            
+    def set_questions(self):           
         self.question_slider = SliderDisable(
             value=30,
             min_value=5,
             max_value=100,
-            step=5)
+            step=5)        
+        self.sync_questions()        
         self.question_label = UILabel(
-            text="Questions: 30",
+            text=f"Questions: {self.question_slider.value}",
             font_name=FONT_MENU,
             font_size=26,
             text_color=a.color.GRAY)
-        grid.add(UIBoxLayout(
+        self.grid.add(UIBoxLayout(
             align="center",
             space_between=20,
             children=[self.question_label, self.question_slider]),
@@ -266,8 +260,35 @@ class MenuView(UIView):
             questions = int(self.question_slider.value)
             self.question_label.text = f"Questions: {questions}"
             global QUESTIONS
-            QUESTIONS = questions     
+            QUESTIONS = questions
             
+    def add_pitch_things(self):    
+        self.pitch_slider = UISlider(
+            value=440,
+            min_value=400,
+            max_value=480,
+            step=1)
+        self.sync_pitch()
+        self.pitch_label = UILabel(
+            text=f"Pitch: A = {PITCH} Hz",
+            font_name=FONT_MENU,
+            font_size=26,
+            text_color=a.color.GRAY)
+        self.grid.add(UIBoxLayout(
+            align="center",
+            space_between=20,
+            children=[self.pitch_label, self.pitch_slider]),
+            column=0,row=1)
+        
+        @self.pitch_slider.event("on_change")
+        def on_slider_change(event):
+            pitch = int(self.pitch_slider.value)
+            self.pitch_label.text = f"Pitch: A = {pitch} Hz"
+            global PITCH
+            PITCH = pitch
+            wave.set_frequencies(PITCH)
+                    
+    def start(self):   
         self.start_button = UIFlatButton(
             text="Start",
             style={
@@ -288,7 +309,7 @@ class MenuView(UIView):
                     font_name=FONT,
                     font_size=22)},
             size_hint=(1, 1))
-        grid.add(self.start_button, column=1, row=3)
+        self.grid.add(self.start_button, column=1, row=3)
         
         @self.start_button.event("on_click")
         def on_start(event):
@@ -299,66 +320,104 @@ class MenuView(UIView):
                     game_view = Training()
                 case "Synthesizer":
                     game_view = Synthesizer()
-            
+                    
+            game_view.setup()
             self.window.show_view(game_view)    
-            
+
+    def sync_pitch(self):
+        self.pitch_slider.value = int(PITCH)
+               
     def sync_octave_checkboxes(self):
             self.oct_4.value = 1 in OCTAVE_MODIFIERS
             self.oct_5.value = 2 in OCTAVE_MODIFIERS
             self.oct_6.value = 4 in OCTAVE_MODIFIERS   
             
     def sync_game_variant(self):
-        self.variant.value = GAME_VARIANT
-                 
+        if GAME_VARIANT == "Synthesizer":
+            self.variant_warning.text = "All notes will be playable"
+        else:
+            self.variant_warning.text = ""
+        self.variant.value = GAME_VARIANT        
+    
+    def sync_selected(self):
+        self.notes.value = "All notes" in SELECTED
+        
+    def sync_questions(self):
+        self.question_slider.value = int(QUESTIONS)         
+                     
     def on_show_view(self):
         self.sync_octave_checkboxes()
+        self.sync_pitch()
         self.sync_game_variant()
-
+        self.sync_selected()
+        self.sync_questions()
+    
 
 class Synthesizer(a.View):
     def __init__(self):
         super().__init__()
         self.window.background_color = a.color.LAVENDER_BLUSH
+        self.sprite_list = None
+        self.sprite_dict = None
+        self.sprite_dict_inverted = None
+        self.labels = None
         
         # TODO: set ABOUT button with instructions + LINK to github
         # TODO: add musical output flow to allow several sounds at once + list all presses on top
-        
-        self.sprite_list = a.SpriteList()  # <sprite_obj_list>
-        self.sprite_dict = {}              # {note : <sprite_obj>}
-        self.sprite_dict_inverted = {}     # {<sprite_obj> : note}
-        self.labels = {}
-        
-        self.create_sprites(notes=DIATONIC,
-                            sprite_img="./assets/images/diatonic_regular.png", 
-                            x=0, y=0, font_size=30)
-        self.create_sprites(notes=CHROMATIC,
-                            sprite_img="./assets/images/chromatic_regular.png", 
-                            x=0.5, y=1)
-        self.create_sprites(notes=MICROTONAL,
-                            sprite_img="./assets/images/microtonal_regular.png", 
-                            x=0.25, y=0.5, x_offset=0.5,
-                            rotation=True, off=[4, 12],
-                            font_size=22)
-        
+        # TODO: add options to select octaves in the play process
+                
+    def setup(self):
+        self.init_sprites_storages()
+        self.create_diatonic()
+        self.create_chromatic()
+        self.create_microtonal()
         self.sprites_dict_inversion()
-    
-    def select_image_for_sprite(self):
-        pass
+             
+    def init_sprites_storages(self):
+        self.sprite_list = a.SpriteList()  # <sprite_obj_list>
+        self.sprite_dict = {}              # SD  {note : <sprite_obj>}
+        self.sprite_dict_inverted = {}     # SDI {<sprite_obj> : note}
+        self.labels = {}
        
-    def create_sprites(self, notes, sprite_img, # sprite_img=None
-                       x=0, y=0, x_offset=1, step=SPRITE_STEP, scale=SPRITE_SCALE,
+    def create_diatonic(self, img="./assets/images/diatonic_regular.png", enabled=True):
+        self.create_sprites_with_labels(
+            notes=DIATONIC, sprite_img=img, font_size=30, enabled=enabled)     
+        
+    def create_chromatic(self, img="./assets/images/chromatic_regular.png", enabled=True):    
+        self.create_sprites_with_labels(
+            notes=CHROMATIC, sprite_img=img, x=0.5, y=1, enabled=enabled) 
+        
+    def create_microtonal(self, img="./assets/images/microtonal_regular.png", enabled=True):   
+        self.create_sprites_with_labels(
+            notes=MICROTONAL, sprite_img=img, 
+            x=0.25, y=0.5, x_offset=0.5, rotation=True, off=[4, 12], font_size=22,
+            enabled=enabled)                    
+      
+    def select_image_for_sprite(self, note):
+        pass
+    
+    def create_sprites_with_labels(self, notes, **kwargs):
+        positions = self.create_sprites(notes, **kwargs)
+        for note, (x, y) in positions.items():
+            self.create_label(x, y, text=note, note=note, font_size=kwargs.get("font_size", 26)) 
+          
+    def create_sprites(self, notes, 
+                       x=0, y=0, x_offset=1, step=SPRITE_STEP,
+                       sprite_img=None, scale=SPRITE_SCALE,
                        rotation=False, off=[],
-                       font_size=26):
-        """Create sprite and add corresponding label"""
+                       enabled=True, **kwards):
+        positions = {}
         
         for i, note in enumerate(notes):
             if not note:
                 continue
-            # if not sprite_img:
-            #     sprite_img = self.select_image_for_sprite()
-            sprite = a.Sprite(sprite_img, scale=scale)
-            sprite.is_clicked = False
+            note_img = sprite_img or self.select_image_for_sprite(note)
+            sprite = a.Sprite(note_img, scale=scale)
+            
+            sprite.is_enabled = enabled
+            sprite.is_clicked = False            
             sprite.timer = 0.0
+            
             sprite_x = SPRITE_POS_X + (x + i * x_offset) * step
             sprite_y = SPRITE_POS_Y + y * step
             sprite.position = sprite_x, sprite_y
@@ -373,24 +432,29 @@ class Synthesizer(a.View):
                     angle = 0
                     sprite.position = sprite_x, sprite_y    
                 sprite.angle = angle
-                
-            sprite.is_clicked = False
+   
             # TODO: add shades for each sprite
             
             self.sprite_list.append(sprite)
             self.sprite_dict[note] = sprite
-
-            label_text = note
-            label = a.Text(text=label_text,
-                                x=sprite_x,
-                                y=sprite_y,
-                                color=a.color.LIGHT_SLATE_GRAY,
-                                font_size=font_size,
-                                font_name=FONT,
-                                anchor_x="center",
-                                anchor_y="center")
-            self.labels[note] = label
-               
+            positions[note] = (sprite_x, sprite_y)
+        return positions
+        
+    def create_label(
+        self, sx, sy, text, note, 
+        color=a.color.LIGHT_SLATE_GRAY, font_size=26, font=FONT, 
+        ax="center", ay="center"):
+        label = a.Text(
+            text=text,
+            x=sx,
+            y=sy,
+            color=color,
+            font_size=font_size,
+            font_name=font,
+            anchor_x=ax,
+            anchor_y=ay)
+        self.labels[note] = label
+                  
     def sprites_dict_inversion(self):
         self.sprite_dict_inverted = {v: k for k, v in self.sprite_dict.items()} 
              
@@ -405,21 +469,22 @@ class Synthesizer(a.View):
             colliding_sprites = a.get_sprites_at_point((x, y), self.sprite_list) 
             if colliding_sprites:
                 s = colliding_sprites[-1]
-                s.is_clicked = True
-                s.timer = 0.0
-            if audio:
-                note=self.sprite_dict_inverted[s]
-                self.play_note(note)                            
+                if s.is_enabled:
+                    s.is_clicked = True
+                    s.timer = 0.0
+                    if audio:
+                        note=self.sprite_dict_inverted[s]
+                        self.play_note(note)                            
                        
     def play_note(self, note):
-        wave.play_note(
-            note,
+        wave.play_note(note,
             octave_modifiers=OCTAVE_MODIFIERS)  
 
     def on_key_press(self, symbol, _):
         if symbol == a.key.ESCAPE:
             game_view = MenuView()
             self.window.show_view(game_view)
+        # TODO: add button that represent escape - to menu
         
         # TODO: add key bindings for each note        
         # if symbol == a.key.A:
@@ -447,25 +512,70 @@ class Synthesizer(a.View):
             s.scale = sc
             s.is_clicked = False
     
-                
+                        
 class Challenge(Synthesizer):
+    def __init__(self):
+        super().__init__()
+        self.waiting_for_click = False
+        self.note = ""  
+        self.q = QUESTIONS
+    
+    def setup(self):
+        self.init_sprites_storages()
+        self.create_diatonic()
+        self.create_chromatic()
+        if SELECTED == "Chromatic":
+            img = "./assets/images/microtonal_not_used.png"
+            self.create_microtonal(img=img, enabled=False)
+        else:
+            self.create_microtonal()
+        self.sprites_dict_inversion()
+        
+    def on_update(self, delta_time):
+        super().on_update(delta_time)     
+        while not self.waiting_for_click: 
+            print(f"{self.q = }")       
+            if self.q > 0:            
+                if SELECTED == "All notes":
+                    self.note = choice(SCALE_MICROTONAL)
+                else:
+                    self.note = choice(SCALE_CHROMATIC) 
+                self.play_note(self.note)
+                print(f"{self.note = }")
+                self.waiting_for_click = True
+                
+    def set_stats(self, s):
+        print("run stats")
+        guess = self.sprite_dict_inverted[s]
+        note_dict = {
+            "note": self.note,
+            "guess": guess,
+            "correct": self.note == guess}
+        print(f"{note_dict}")
+        ANSWERS.append(note_dict)
+             
     def on_mouse_press(self, x, y, button, _, audio=True):
         super().on_mouse_press(x, y, button, _, audio=False)
-    
-    for _ in QUESTIONS:
-        if SELECTED == "all":
-            note = SCALE_MICROTONAL[randint(0,23)]
-        else:
-            note = SCALE_CHROMATIC[randint(0,11)]
-        ...
-            
-    
-    
+        if button == a.MOUSE_BUTTON_LEFT: 
+            print("get mouse")
+            colliding_sprites = a.get_sprites_at_point((x, y), self.sprite_list)
+            if colliding_sprites:
+                print("colliding sprites")
+                s = colliding_sprites[-1]
+                if s.is_enabled:
+                    self.set_stats(s)
+                    self.q -= 1 
+                if self.q == 0:
+                    game_view = StatisticsViev()
+                    self.window.show_view(game_view)
+                self.waiting_for_click = False
+                
+    # TODO: add questions left 
     
 
 class Training(Challenge): 
     # TODO: addcheckbox to decide if the note selected should be playesd & formula for thereafter calculations of delay between notes
-         
+    # TODO set greenish value for bg     
     def animate_sprite(self, *args, **kwargs):
         super().animate_sprite(*args, img=True, **kwargs)
     
@@ -475,11 +585,71 @@ class Training(Challenge):
         return img           
     
 
-
 class StatisticsViev(Synthesizer):
-    # TODO statistics calculations + draw on sprites
-    # def select_image_for_sprite(self):
-    #     pass 
+    def __init__(self):
+        super().__init__()
+        self.statistics = self.get_statistics()
+        self.setup()
+        # TODO set blueish value for bg
+        # TODO:set buttons for meny, new game, about
+    # TODO: show overall statistics in UILabel - title? / section?
+    
+    def create_sprites_with_labels(self, notes, **kwargs):
+        positions = self.create_sprites(notes, **kwargs)
+        for note, (x, y) in positions.items():
+            if note not in self.statistics:
+                text = ""
+            else:
+                acc = round(self.statistics[note]["accuracy"])
+                text = f"{acc}%"
+            self.create_label(x, y, text=text, note=note, font=FONT_MENU, font_size=kwargs.get("font_size", 26)) 
+            
+    def create_diatonic(self, img=None, enabled=False):
+        super().create_diatonic(img=None, enabled=False)
+        
+    def create_chromatic(self, img=None, enabled=False):
+        super().create_chromatic(img=None, enabled=False)
+        
+    def create_microtonal(self, img=None, enabled=False):
+        super().create_microtonal(img=None, enabled=False)
+        
+    def select_image_for_sprite(self, note):
+        print(f"{note = }")
+        if note in DIATONIC:
+            word = "diatonic"
+        elif note in CHROMATIC:
+            word = "chromatic"
+        else:
+            word = "microtonal"  
+        print(f"{word = }") 
+        if note not in self.statistics:
+            img = f"./assets/images/{word}_not_used.png"
+        else:
+            stats = self.statistics[note]
+            print(f"stats for {note} = {stats["accuracy"]}")
+            if stats["accuracy"] >= 90:
+                img = f"./assets/images/{word}_right.png"
+            elif stats["accuracy"] <= 10:
+                img = f"./assets/images/{word}_wrong.png"
+            else:
+                img = f"./assets/images/{word}_regular.png"
+        print(f"{img = }")
+        return img
+                    
+    @staticmethod          
+    def get_statistics():
+        statistics = defaultdict(lambda: {"played": 0, "correct": 0})    
+        for entry in ANSWERS:
+            note = entry["note"]
+            statistics[note]["played"] += 1
+            if entry["correct"]:
+                statistics[note]["correct"] += 1                
+        for note, stats in statistics.items():
+            stats["accuracy"] = stats["correct"] / stats["played"] * 100
+        return dict(statistics)
+
+    # TODO: sel labels from calculations
+    
     # TODO: add ABOUT button
     # TODO: return to menu option
     # TODO: new game option
@@ -487,9 +657,10 @@ class StatisticsViev(Synthesizer):
 
        
 def main():
-    window = a.Window(title=TITLE,
-                           width=SCREEN_WIDTH,
-                           height=SCREEN_HEIGHT)
+    window = a.Window(
+        title=TITLE,
+        width=SCREEN_WIDTH,
+        height=SCREEN_HEIGHT)
     window.center_window()
     game = MenuView()
     window.show_view(game)
