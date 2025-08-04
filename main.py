@@ -410,31 +410,46 @@ class Synthesizer(a.View):
         self.sprite_dict_inverted = {}     # SDI {<sprite_obj> : note}
         self.labels = {}
        
-    def create_diatonic(self, img="./assets/images/diatonic_regular.png", enabled=True):
+    def create_diatonic(self, accuracy=-2, enabled=True):
+        textures = self.get_textures("diatonic")
         self.create_sprites_with_labels(
-            notes=DIATONIC, sprite_img=img, font_size=30, enabled=enabled)     
+            notes=DIATONIC, textures=textures, accuracy=accuracy, font_size=30, enabled=enabled)     
         
-    def create_chromatic(self, img="./assets/images/chromatic_regular.png", enabled=True):    
+    def create_chromatic(self, accuracy=-2, enabled=True):  
+        textures = self.get_textures("chromatic")
         self.create_sprites_with_labels(
-            notes=CHROMATIC, sprite_img=img, x=0.5, y=1, enabled=enabled) 
+            notes=CHROMATIC,  textures=textures, accuracy=accuracy, x=0.5, y=1, enabled=enabled) 
         
-    def create_microtonal(self, img="./assets/images/microtonal_regular.png", enabled=True):   
+    def create_microtonal(self, accuracy=-2, enabled=True):   
+        textures = self.get_textures("microtonal")
         self.create_sprites_with_labels(
-            notes=MICROTONAL, sprite_img=img, 
+            notes=MICROTONAL, textures=textures, accuracy=accuracy, 
             x=0.25, y=0.5, x_offset=0.5, rotation=True, off=[4, 12], font_size=22,
             enabled=enabled)                    
-      
-    def select_image_for_sprite(self, note):
-        pass
     
-    def create_sprites_with_labels(self, notes, **kwargs):
-        positions = self.create_sprites(notes, **kwargs)
+    def get_textures(self, name):
+        textures = [
+            f"./assets/images/{name}_regular.png",    # index 0
+            f"./assets/images/{name}_right.png",      # index 1
+            f"./assets/images/{name}_wrong.png",      # index 2
+            f"./assets/images/{name}_not_used.png",   # index 3
+        ]      
+        return textures 
+    
+    def create_sprites_with_labels(self, notes, accuracy=None, enabled=True, **kwargs):
+        positions = self.create_sprites(notes, accuracy=accuracy, enabled=enabled, **kwargs)
         for note, (x, y) in positions.items():
-            self.create_label(x, y, text=note, note=note, font_size=kwargs.get("font_size", 26)) 
+            self.create_label(x, y, text=note, note=note,  font_size=kwargs.get("font_size", 26)) 
+            
+    def set_accuracy(self, note):
+        pass
           
     def create_sprites(self, notes, 
                        x=0, y=0, x_offset=1, step=SPRITE_STEP,
-                       sprite_img=None, scale=SPRITE_SCALE,
+                       textures=None, 
+                       accuracy=None,
+                    #    index=0, 
+                       scale=SPRITE_SCALE,
                        rotation=False, off=[],
                        enabled=True, **kwards):
         positions = {}
@@ -442,8 +457,30 @@ class Synthesizer(a.View):
         for i, note in enumerate(notes):
             if not note:
                 continue
-            note_img = sprite_img or self.select_image_for_sprite(note)
-            sprite = a.Sprite(note_img, scale=scale)
+            sprite = a.Sprite(img=None, scale=scale)
+            for texture in textures:
+                sprite.append_texture(a.load_texture(texture))
+            
+            
+            acc = accuracy or self.set_accuracy(note)    
+            # sprite.accuracy = accuracy
+            # regular usage
+            if acc == -2:         
+                index = 0
+            # not used
+            elif acc == -1:
+                index = 3
+            # right
+            elif acc >= 90:
+                index = 1
+            # Wrong
+            elif acc <= 10:
+                index = 2
+            # in-between
+            else:
+                index = 0
+            print(f"{note = }, {acc = }, {index = }")
+            sprite.set_texture(index)
             
             sprite.is_enabled = enabled
             sprite.is_clicked = False            
@@ -552,12 +589,12 @@ class Challenge(Synthesizer):
         self.q = QUESTIONS
     
     def setup(self):
+        # super().setup()
         self.init_sprites_storages()
         self.create_diatonic()
         self.create_chromatic()
         if SELECTED == "Chromatic":
-            img = "./assets/images/microtonal_not_used.png"
-            self.create_microtonal(img=img, enabled=False)
+            self.create_microtonal(accuracy=-1, enabled=False)
         else:
             self.create_microtonal()
         self.sprites_dict_inversion()
@@ -584,46 +621,50 @@ class Challenge(Synthesizer):
             "correct": self.note == guess}
         print(f"{note_dict}")
         ANSWERS.append(note_dict)
+        
              
     def on_mouse_press(self, x, y, button, _, audio=True):
         super().on_mouse_press(x, y, button, _, audio=False)
-        if button == a.MOUSE_BUTTON_LEFT: 
-            print("get mouse")
+        # if not self.waiting_for_click:
+        #     return
+        if button == a.MOUSE_BUTTON_LEFT:
+            print("get mouse")            
             colliding_sprites = a.get_sprites_at_point((x, y), self.sprite_list)
             if colliding_sprites:
-                print("colliding sprites")
-                s = colliding_sprites[-1]
+                print("collides")
+                s = colliding_sprites[-1]                    
                 if s.is_enabled:
                     self.set_stats(s)
-                    self.q -= 1 
-                if self.q == 0:
-                    game_view = StatisticsViev()
-                    self.window.show_view(game_view)
-                self.waiting_for_click = False
+                    self.q -= 1
+                    self.waiting_for_click = False
+                # else:
+                #     self.waiting_for_click = True
+            if self.q == 0:
+                game_view = StatisticsViev()
+                game_view.setup()
+                self.window.show_view(game_view)
+            
                 
     # TODO: add questions left 
     
 
 class Training(Challenge):
+    pass
     # def __init__(self):        
     #     super().__init__()
         
     # TODO: addcheckbox to decide if the note selected should be playesd & formula for thereafter calculations of delay between notes
     # TODO set greenish value for bg     
-    def animate_sprite(self, *args, **kwargs):
-        super().animate_sprite(*args, img=True, **kwargs)
+    # def animate_sprite(self, *args, **kwargs):
+    #     super().animate_sprite(*args, img=True, **kwargs)
     
     # TODO: add blue for played and outline for checke
-    def select_image_for_sprite(self):
-        img = ...
-        return img
+    
     
 
-class StatisticsViev(Synthesizer):
-    def __init__(self):
-        super().__init__()
-        self.statistics = self.get_statistics()
-        
+class StatisticsViev(Synthesizer):   
+    
+    def setup(self):  
         self.ui_manager = UIManager()
         self.grid = UIGridLayout(
             horizontal_spacing=150, 
@@ -636,7 +677,13 @@ class StatisticsViev(Synthesizer):
         self.overall_stats(stats=None)
         self.open_menu_button()
         self.new_game_button()
-        self.setup()
+              
+        self.statistics = self.get_statistics()
+        self.init_sprites_storages()
+        self.create_diatonic(accuracy=None, enabled=False)
+        self.create_chromatic(accuracy=None, enabled=False)
+        self.create_microtonal(accuracy=None, enabled=False)
+        self.sprites_dict_inversion()
 
     def title(self):    
         title = UILabel(
@@ -683,8 +730,17 @@ class StatisticsViev(Synthesizer):
             game_view.setup()
             self.window.show_view(game_view)    
 
-    def create_sprites_with_labels(self, notes, **kwargs):
-        positions = self.create_sprites(notes, **kwargs)
+    def set_accuracy(self, note):
+        if note not in self.statistics:
+            acc = -1
+        else:
+            acc = self.statistics[note]["accuracy"]
+        return acc
+    
+    def create_sprites_with_labels(self, notes, accuracy=None, enabled=False, **kwargs):
+        
+        
+        positions = self.create_sprites(notes, accuracy=accuracy, enabled=enabled, **kwargs)
         for note, (x, y) in positions.items():
             if note not in self.statistics:
                 text = ""
@@ -692,39 +748,7 @@ class StatisticsViev(Synthesizer):
                 acc = round(self.statistics[note]["accuracy"])
                 text = f"{acc}%"
             self.create_label(x, y, text=text, note=note, font=FONT_MENU, font_size=kwargs.get("font_size", 26)) 
-            
-    def create_diatonic(self, img=None, enabled=False):
-        super().create_diatonic(img=None, enabled=False)
-        
-    def create_chromatic(self, img=None, enabled=False):
-        super().create_chromatic(img=None, enabled=False)
-        
-    def create_microtonal(self, img=None, enabled=False):
-        super().create_microtonal(img=None, enabled=False)
-        
-    def select_image_for_sprite(self, note):
-        print(f"{note = }")
-        if note in DIATONIC:
-            word = "diatonic"
-        elif note in CHROMATIC:
-            word = "chromatic"
-        else:
-            word = "microtonal"  
-        print(f"{word = }") 
-        if note not in self.statistics:
-            img = f"./assets/images/{word}_not_used.png"
-        else:
-            stats = self.statistics[note]
-            print(f"stats for {note} = {stats["accuracy"]}")
-            if stats["accuracy"] >= 90:
-                img = f"./assets/images/{word}_right.png"
-            elif stats["accuracy"] <= 10:
-                img = f"./assets/images/{word}_wrong.png"
-            else:
-                img = f"./assets/images/{word}_regular.png"
-        print(f"{img = }")
-        return img
-    
+                
     def on_draw(self):
         super().on_draw()
         self.ui_manager.draw()
