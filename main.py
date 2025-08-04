@@ -10,9 +10,11 @@ from arcade.gui import (
     UITextureToggle,
     UIView,
     UIGridLayout,
+    UIManager,
 )
 from random import choice
 from collections import defaultdict
+import webbrowser
 import wave
 
 PITCH = 440
@@ -40,7 +42,7 @@ SPRITE_SCALE = 0.8
 SPRITE_POS_X = 112
 SPRITE_POS_Y = 180
 SPRITE_STEP  = 160
-SPRITE_ANGLE = 4
+SPRITE_ANGLE = 5
 
 FONT      = "Castellar"
 FONT_MENU = "Agency FB"
@@ -52,6 +54,8 @@ QUESTIONS        = 30
 
 ANSWERS = []
 
+
+
 class SliderDisable(UISlider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,23 +65,47 @@ class SliderDisable(UISlider):
             return
         return super().on_event(event)
 
-# TODO: Add ABOUT button
-# TODO Add Statistics view - disabled if not played       
-# TODO set yellowish value for gb
-    
+
+class SideButton(UIFlatButton):
+    def __init__(self, text, font=FONT_MENU, 
+                 font_size=18, size_hint=(0.08, 0.05)):
+        super().__init__()
+        self.text = f"{text}"
+        self.style = {
+        "press": UIFlatButtonStyle(
+            font_name=font,
+            font_color=a.color.LEMON_CURRY,
+            bg=a.color.JASMINE,
+            font_size=font_size),
+        "normal": UIFlatButtonStyle(            
+            font_name=font,
+            font_color=a.color.LEMON_CURRY,
+            bg=a.color.FLORAL_WHITE,
+            font_size=font_size),
+        "hover": UIFlatButtonStyle(
+            font_name=font,
+            font_color=a.color.FLORAL_WHITE,
+            bg=a.color.LEMON_CURRY,                        
+            font_size=font_size)}
+        self.size_hint = size_hint
+   
+   
 class MenuView(UIView):
     def __init__(self):        
         super().__init__()
         self.ui.enable()
-        self.background_color = a.color.LAVENDER_BLUSH       
+        self.background_color = a.color.FLORAL_WHITE       
         
         self.grid = UIGridLayout(
             horizontal_spacing=150, 
             vertical_spacing=80, 
             column_count=2, 
-            row_count=4)         
-        self.ui.add(UIAnchorLayout(children=[self.grid]))            
+            row_count=4)
+        self.anchor = UIAnchorLayout(children=[self.grid])
+        self.ui.add(self.anchor)     
         
+        self.open_github_button()
+        self.open_about_button()  
         self.title()
         self.add_pitch_things()
         self.set_notes_selected()
@@ -85,7 +113,29 @@ class MenuView(UIView):
         self.set_game_variant()
         self.set_questions()
         self.start()
-        
+    
+    def open_github_button(self):     
+        button = self.anchor.add(
+            SideButton(text="Author"),
+            anchor_y="top",
+            align_y=-128,
+            anchor_x="left",
+            align_x=250)
+        @button.event("on_click")
+        def on_click(_):
+            webbrowser.open("https://github.com/Lians-coder")
+
+    def open_about_button(self):
+        button = self.anchor.add(
+            SideButton(text="About"),
+            anchor_y="top",
+            align_y=-128,
+            anchor_x="right",
+            align_x=-250)
+        @button.event("on_click")
+        def on_click(_):
+            webbrowser.open("https://github.com/Lians-coder/microtonal_game_synthesizer/readme.md")        
+                
     def title(self):    
         title = UILabel(
             text="Menu Screen",
@@ -101,8 +151,8 @@ class MenuView(UIView):
         self.variant_warning = UILabel(
                     text="\n",
                     font_name=FONT_MENU,
-                    font_size=16,
-                    text_color=a.color.GRAY)
+                    font_size=19,
+                    text_color=a.color.LEMON_CURRY)
         self.sync_game_variant()  
               
         self.grid.add(UIBoxLayout(
@@ -120,16 +170,19 @@ class MenuView(UIView):
         
         @self.variant.event("on_change")
         def on_game_variant_change(event):  
-            var = self.variant.value     
+            global GAME_VARIANT
+            var = self.variant.value 
+            GAME_VARIANT = var    
             if var == "Synthesizer":
                 self.question_slider.enabled = False
                 self.variant_warning.text = "All notes will be playable"
             else:
                 self.question_slider.enabled = True
-                self.variant_warning.text = "\n"
-            global GAME_VARIANT
-            GAME_VARIANT = var
-
+                if GAME_VARIANT == "Training":
+                    self.variant_warning.text = "This mode will give you feedback"
+                else:
+                    self.variant_warning.text = "No feedback during the game"
+        
     def set_notes_selected(self):
         self.notes = UITextureToggle(            
                 on_texture=TEX_TOGGLE_GREEN,
@@ -289,26 +342,8 @@ class MenuView(UIView):
             wave.set_frequencies(PITCH)
                     
     def start(self):   
-        self.start_button = UIFlatButton(
-            text="Start",
-            style={
-                "normal": UIFlatButtonStyle(
-                    font_name=FONT,
-                    font_size=22),
-                "hover": UIFlatButtonStyle(
-                    font_name=FONT,
-                    font_color=a.color.LAVENDER_BLUSH,
-                    bg=a.color.CANDY_PINK,
-                    font_size=22),
-                "press": UIFlatButtonStyle(
-                    font_name=FONT,
-                    font_color=a.color.GRAY,
-                    bg=a.color.BUBBLE_GUM,                        
-                    font_size=22),
-                "disabled": UIFlatButtonStyle(
-                    font_name=FONT,
-                    font_size=22)},
-            size_hint=(1, 1))
+        self.start_button = SideButton(
+            text="Start", font=FONT, font_size=28, size_hint=(1, 1))
         self.grid.add(self.start_button, column=1, row=3)
         
         @self.start_button.event("on_click")
@@ -328,15 +363,11 @@ class MenuView(UIView):
         self.pitch_slider.value = int(PITCH)
                
     def sync_octave_checkboxes(self):
-            self.oct_4.value = 1 in OCTAVE_MODIFIERS
-            self.oct_5.value = 2 in OCTAVE_MODIFIERS
-            self.oct_6.value = 4 in OCTAVE_MODIFIERS   
+        self.oct_4.value = 1 in OCTAVE_MODIFIERS
+        self.oct_5.value = 2 in OCTAVE_MODIFIERS
+        self.oct_6.value = 4 in OCTAVE_MODIFIERS   
             
     def sync_game_variant(self):
-        if GAME_VARIANT == "Synthesizer":
-            self.variant_warning.text = "All notes will be playable"
-        else:
-            self.variant_warning.text = ""
         self.variant.value = GAME_VARIANT        
     
     def sync_selected(self):
@@ -356,7 +387,7 @@ class MenuView(UIView):
 class Synthesizer(a.View):
     def __init__(self):
         super().__init__()
-        self.window.background_color = a.color.LAVENDER_BLUSH
+        self.window.background_color = a.color.OLD_LACE
         self.sprite_list = None
         self.sprite_dict = None
         self.sprite_dict_inverted = None
@@ -458,8 +489,8 @@ class Synthesizer(a.View):
     def sprites_dict_inversion(self):
         self.sprite_dict_inverted = {v: k for k, v in self.sprite_dict.items()} 
              
-    def on_draw(self):
-        self.clear(a.color.LAVENDER_BLUSH)
+    def on_draw(self, color=a.color.OLD_LACE):
+        self.clear(color)
         self.sprite_list.draw()
         for label in self.labels.values():
             label.draw()
@@ -573,7 +604,10 @@ class Challenge(Synthesizer):
     # TODO: add questions left 
     
 
-class Training(Challenge): 
+class Training(Challenge):
+    # def __init__(self):        
+    #     super().__init__()
+        
     # TODO: addcheckbox to decide if the note selected should be playesd & formula for thereafter calculations of delay between notes
     # TODO set greenish value for bg     
     def animate_sprite(self, *args, **kwargs):
@@ -582,18 +616,73 @@ class Training(Challenge):
     # TODO: add blue for played and outline for checke
     def select_image_for_sprite(self):
         img = ...
-        return img           
+        return img
     
 
 class StatisticsViev(Synthesizer):
     def __init__(self):
         super().__init__()
         self.statistics = self.get_statistics()
+        
+        self.ui_manager = UIManager()
+        self.grid = UIGridLayout(
+            horizontal_spacing=150, 
+            vertical_spacing=80, 
+            column_count=1, 
+            row_count=7)
+        self.anchor = UIAnchorLayout(children=[self.grid])
+        self.ui_manager.add(self.anchor)         
+        self.title()
+        self.overall_stats(stats=None)
+        self.open_menu_button()
+        self.new_game_button()
         self.setup()
-        # TODO set blueish value for bg
-        # TODO:set buttons for meny, new game, about
-    # TODO: show overall statistics in UILabel - title? / section?
-    
+
+    def title(self):    
+        title = UILabel(
+            text="Statistics",
+            font_name=FONT,
+            font_size=32,
+            text_color=a.color.GRAY)
+        self.grid.add(title, column=0, row=0)
+        
+    def overall_stats(self, stats):
+        label = UILabel(
+            text=f"Overall statistics: {stats}",
+            font_name=FONT_MENU,
+            font_size=28,
+            text_color=a.color.GRAY)
+        self.grid.add(label, column=0, row=1)
+     
+    def open_menu_button(self):
+        self.open_menu_button = self.anchor.add(
+            SideButton(text="Menu"),
+            anchor_y="top",
+            align_y=-128,
+            anchor_x="left",
+            align_x=250)        
+        @self.open_menu_button.event("on_click")
+        def on_start(event):
+            game_view = MenuView()
+            self.window.show_view(game_view)
+
+    def new_game_button(self):
+        self.new_game_button = self.anchor.add(
+            SideButton(text="New Game"),
+            anchor_y="top",
+            align_y=-128,
+            anchor_x="right",
+            align_x=-250)
+        @self.new_game_button.event("on_click")
+        def on_start(event):
+            match GAME_VARIANT:
+                case "Challenge":
+                    game_view = Challenge()
+                case "Training":
+                    game_view = Training()                 
+            game_view.setup()
+            self.window.show_view(game_view)    
+
     def create_sprites_with_labels(self, notes, **kwargs):
         positions = self.create_sprites(notes, **kwargs)
         for note, (x, y) in positions.items():
@@ -635,7 +724,11 @@ class StatisticsViev(Synthesizer):
                 img = f"./assets/images/{word}_regular.png"
         print(f"{img = }")
         return img
-                    
+    
+    def on_draw(self):
+        super().on_draw()
+        self.ui_manager.draw()
+                       
     @staticmethod          
     def get_statistics():
         statistics = defaultdict(lambda: {"played": 0, "correct": 0})    
@@ -647,13 +740,10 @@ class StatisticsViev(Synthesizer):
         for note, stats in statistics.items():
             stats["accuracy"] = stats["correct"] / stats["played"] * 100
         return dict(statistics)
-
-    # TODO: sel labels from calculations
+    # TODO: calculate overall statistics
     
-    # TODO: add ABOUT button
-    # TODO: return to menu option
-    # TODO: new game option
-    pass
+    
+    # TODO: make them functional - return to menu option + new game option
 
        
 def main():

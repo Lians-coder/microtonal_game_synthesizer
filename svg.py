@@ -3,7 +3,7 @@ import wand.color
 import wand.image
 
 BATTLESHIP_GREY  = (132, 132, 130)
-LAVENDER_BLUSH   = (255, 240, 245)
+FLORAL_WHITE     = (255, 250, 240)
 GRAY             = (128, 128, 128)
 DIAMOND          = (185, 242, 255)
 LIGHT_GRAY_CH    = (221, 221, 221)
@@ -11,12 +11,12 @@ BRINK_PINK       = (251, 96,  127)
 SHAMROCK_GREEN   = (  0, 158, 96 )
 PINK             = (255, 218, 235)
 
-def main():
-    w_h = [(140, 256), (140, 240), (93, 114)]
+def setup_img():
+    w_h     = [(140, 256), (140, 240),  (93, 114)]
     sprites = ["diatonic", "chromatic", "microtonal"]
     
-    names = ["regular", "right", "wrong", "not_used"]
-    colors_fill = [LAVENDER_BLUSH, DIAMOND, PINK, LIGHT_GRAY_CH]
+    names         = ["regular", "right", "wrong", "not_used"]
+    colors_fill   = [FLORAL_WHITE, DIAMOND, PINK, LIGHT_GRAY_CH]
     colors_stroke = [GRAY, SHAMROCK_GREEN, BRINK_PINK, BATTLESHIP_GREY]
     
     for s, wh in zip(sprites, w_h):
@@ -29,7 +29,7 @@ def main():
 def create_rounded_rectangle_svg(x=0, y=0,\
                                 width=140, height=260,\
                                 rx=44, ry=54,\
-                                fill_color=LAVENDER_BLUSH,\
+                                fill_color=FLORAL_WHITE,\
                                 stroke_color=GRAY,\
                                 stroke_width=2):
     
@@ -73,5 +73,5 @@ def svg2png(w, h, n, fc, sc):
 
 
 if __name__ == "__main__":
-    main()
+    setup_img()
 
