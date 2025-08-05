@@ -67,8 +67,8 @@ class SliderDisable(UISlider):
 
 
 class SideButton(UIFlatButton):
-    def __init__(self, text, font=FONT_MENU, 
-                 font_size=18, size_hint=(0.08, 0.05)):
+    def __init__(self, text, font=FONT_MENU,
+                 font_size=18, size_hint=(0.09, 0.05)):
         super().__init__()
         self.text = f"{text}"
         self.style = {
@@ -448,7 +448,6 @@ class Synthesizer(a.View):
                        x=0, y=0, x_offset=1, step=SPRITE_STEP,
                        textures=None, 
                        accuracy=None,
-                    #    index=0, 
                        scale=SPRITE_SCALE,
                        rotation=False, off=[],
                        enabled=True, **kwards):
@@ -458,28 +457,20 @@ class Synthesizer(a.View):
             if not note:
                 continue
             sprite = a.Sprite(img=None, scale=scale)
+            
             for texture in textures:
                 sprite.append_texture(a.load_texture(texture))
-            
-            
-            acc = accuracy or self.set_accuracy(note)    
-            # sprite.accuracy = accuracy
-            # regular usage
+            acc = accuracy or self.set_accuracy(note)   
             if acc == -2:         
                 index = 0
-            # not used
             elif acc == -1:
                 index = 3
-            # right
             elif acc >= 90:
                 index = 1
-            # Wrong
             elif acc <= 10:
                 index = 2
-            # in-between
             else:
                 index = 0
-            print(f"{note = }, {acc = }, {index = }")
             sprite.set_texture(index)
             
             sprite.is_enabled = enabled
@@ -662,71 +653,99 @@ class Training(Challenge):
     
     
 
-class StatisticsViev(Synthesizer):   
-    
+class StatisticsViev(Synthesizer):       
     def setup(self):  
+        self.statistics = self.get_statistics()
+ 
         self.ui_manager = UIManager()
-        self.grid = UIGridLayout(
-            horizontal_spacing=150, 
-            vertical_spacing=80, 
-            column_count=1, 
-            row_count=7)
-        self.anchor = UIAnchorLayout(children=[self.grid])
+        self.anchor = UIAnchorLayout(children=[])
         self.ui_manager.add(self.anchor)         
+        
         self.title()
-        self.overall_stats(stats=None)
+        self.overall_stats()     
         self.open_menu_button()
         self.new_game_button()
-              
-        self.statistics = self.get_statistics()
+        self.reset_stats_button()           
+               
         self.init_sprites_storages()
         self.create_diatonic(accuracy=None, enabled=False)
         self.create_chromatic(accuracy=None, enabled=False)
         self.create_microtonal(accuracy=None, enabled=False)
         self.sprites_dict_inversion()
 
-    def title(self):    
-        title = UILabel(
-            text="Statistics",
-            font_name=FONT,
-            font_size=32,
-            text_color=a.color.GRAY)
-        self.grid.add(title, column=0, row=0)
-        
-    def overall_stats(self, stats):
-        label = UILabel(
-            text=f"Overall statistics: {stats}",
-            font_name=FONT_MENU,
-            font_size=28,
-            text_color=a.color.GRAY)
-        self.grid.add(label, column=0, row=1)
-     
+    def title(self):   
+        self.anchor.add(
+            UILabel(
+                text="Statistics",
+                font_name=FONT,
+                font_size=32,
+                text_color=a.color.GRAY),
+            anchor_y="top",
+            align_y=-150,
+            anchor_x="center") 
+    
+    def overall_stats(self):
+        if len(ANSWERS) == 0:
+            stats = 0
+        else:
+            right_answers = sum(note["correct"] for note in ANSWERS)
+            stats = round(right_answers / len(ANSWERS) * 100, 2)
+        self.anchor.add(
+            UILabel(
+                text=f"Right answers overall: {stats:.4g}%",
+                font_name=FONT_MENU,
+                font_size=26,
+                text_color=a.color.GRAY),
+            anchor_y="top",
+            align_y=-250,
+            anchor_x="center")
+    
+    def reset_stats_button(self):
+        self.reset_stats_button = self.anchor.add(
+            SideButton(
+                text="Reset statistics",
+                font_size = 16),
+            anchor_y="top",
+            align_y=-50,
+            anchor_x="right",
+            align_x=-250)        
+        @self.reset_stats_button.event("on_click")
+        def on_start(event):
+            global ANSWERS
+            ANSWERS = []
+            game_view = StatisticsViev()
+            game_view.setup()
+            self.window.show_view(game_view)
+    
     def open_menu_button(self):
         self.open_menu_button = self.anchor.add(
-            SideButton(text="Menu"),
+            SideButton(
+                text="Menu",
+                font_size = 16),
             anchor_y="top",
-            align_y=-128,
+            align_y=-50,
             anchor_x="left",
             align_x=250)        
         @self.open_menu_button.event("on_click")
-        def on_start(event):
+        def to_menu(event):
             game_view = MenuView()
             self.window.show_view(game_view)
 
     def new_game_button(self):
         self.new_game_button = self.anchor.add(
-            SideButton(text="New Game"),
+            SideButton(
+                text="New Game",
+                font_size = 16),
             anchor_y="top",
-            align_y=-128,
-            anchor_x="right",
-            align_x=-250)
+            align_y=-50,
+            anchor_x="center")        
         @self.new_game_button.event("on_click")
-        def on_start(event):
+        def new_game(event):
             match GAME_VARIANT:
                 case "Challenge":
-                    game_view = Challenge()
+                    game_view = Challenge()        
                 case "Training":
-                    game_view = Training()                 
+                    game_view = Training()
             game_view.setup()
             self.window.show_view(game_view)    
 
@@ -738,8 +757,6 @@ class StatisticsViev(Synthesizer):
         return acc
     
     def create_sprites_with_labels(self, notes, accuracy=None, enabled=False, **kwargs):
-        
-        
         positions = self.create_sprites(notes, accuracy=accuracy, enabled=enabled, **kwargs)
         for note, (x, y) in positions.items():
             if note not in self.statistics:
@@ -750,9 +767,13 @@ class StatisticsViev(Synthesizer):
             self.create_label(x, y, text=text, note=note, font=FONT_MENU, font_size=kwargs.get("font_size", 26)) 
                 
     def on_draw(self):
+        # TODO rewrite to allow redrawing rather than resetting view (?)
         super().on_draw()
         self.ui_manager.draw()
-                       
+     
+    def on_show_view(self):
+        self.ui_manager.enable()
+                      
     @staticmethod          
     def get_statistics():
         statistics = defaultdict(lambda: {"played": 0, "correct": 0})    
@@ -764,11 +785,12 @@ class StatisticsViev(Synthesizer):
         for note, stats in statistics.items():
             stats["accuracy"] = stats["correct"] / stats["played"] * 100
         return dict(statistics)
-    # TODO: calculate overall statistics
-    
-    
-    # TODO: make them functional - return to menu option + new game option
 
+    def verbose_hints(self):
+        # (TODO): add some more stats - e.g., most confused with, absolute numdesr of questions and answers etc
+        # should pop up when hover on sprite with note info
+        pass
+    
        
 def main():
     window = a.Window(
