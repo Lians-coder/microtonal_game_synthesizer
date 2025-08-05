@@ -1,15 +1,17 @@
 from wand.api import library
 import wand.color
 import wand.image
+from defines import (
+    BATTLESHIP_GREY,
+    FLORAL_WHITE,
+    LIGHT_GRAY_CH,
+    DIAMOND,
+    LIGHT_GRAY_CH,
+    BRINK_PINK,
+    SHAMROCK_GREEN,
+    PINK,
+)
 
-BATTLESHIP_GREY  = (132, 132, 130)
-FLORAL_WHITE     = (255, 250, 240)
-GRAY             = (128, 128, 128)
-DIAMOND          = (185, 242, 255)
-LIGHT_GRAY_CH    = (221, 221, 221)
-BRINK_PINK       = (251, 96,  127)
-SHAMROCK_GREEN   = (  0, 158, 96 )
-PINK             = (255, 218, 235)
 
 def setup_img():
     w_h     = [(140, 256), (140, 240),  (93, 114)]

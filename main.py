@@ -17,44 +17,16 @@ from collections import defaultdict
 import webbrowser
 import wave
 
-PITCH = 440
+from defines import (
+    SCREEN_WIDTH, SCREEN_HEIGHT, TITLE,
+    DIATONIC, CHROMATIC, MICROTONAL, SCALE_CHROMATIC, SCALE_MICROTONAL,
+    TEX_TOGGLE_RED, TEX_TOGGLE_GREEN, TEX_CHECKBOX_CHECKED, TEX_CHECKBOX_UNCHECKED,
+    SPRITE_SCALE, SPRITE_POS_X, SPRITE_POS_Y, SPRITE_STEP, SPRITE_ANGLE,
+    FONT, FONT_MENU,
+    PITCH, GAME_VARIANT, SELECTED, OCTAVE_MODIFIERS, QUESTIONS, ANSWERS,
+)
 
-SCREEN_WIDTH  = 1220
-SCREEN_HEIGHT = 800
-TITLE         = "Microtonal Guessing Game"
-
-DIATONIC   = ["C", "D", "E", "F", "G", "A", "B"]
-CHROMATIC  = ["C♯|D♭", "D♯|E♭", None, "F♯|G♭", "G♯|A♭", "A♯|B♭", None]
-MICROTONAL = ["C𝄲", "D𝄳", "D𝄲", "E𝄳", "E𝄲|F𝄳", None, "F𝄲", "G𝄳", "G𝄲", "A𝄳", "A𝄲", "B𝄳", "B𝄲|C𝄳", None]
-micro = list(filter(lambda m: m, MICROTONAL))
-SCALE_CHROMATIC  = [note for pair in zip(DIATONIC, CHROMATIC) for note in pair if note]
-SCALE_MICROTONAL = [note for pair in zip(SCALE_CHROMATIC, micro) for note in pair if note]
-
-TEX_TOGGLE_RED          = a.load_texture(":resources:gui_basic_assets/toggle/red.png")
-TEX_TOGGLE_GREEN        = a.load_texture(":resources:gui_basic_assets/toggle/green.png")
-TEX_CHECKBOX_CHECKED    = a.load_texture(":resources:gui_basic_assets/checkbox/blue_check.png")
-TEX_CHECKBOX_UNCHECKED  = a.load_texture(":resources:gui_basic_assets/checkbox/empty.png")
-# TEXT_WIDGET_EXPLANATION = textwrap.dedent("""
-# ...
-# """).strip()
-
-SPRITE_SCALE = 0.8
-SPRITE_POS_X = 112
-SPRITE_POS_Y = 180
-SPRITE_STEP  = 160
-SPRITE_ANGLE = 5
-
-FONT      = "Castellar"
-FONT_MENU = "Agency FB"
-
-GAME_VARIANT     = "Challenge"
-SELECTED         = "All notes"
-OCTAVE_MODIFIERS = [1,]
-QUESTIONS        = 30
-
-ANSWERS = []
-
-
+# TODO add png checks and creation if needed
 
 class SliderDisable(UISlider):
     def __init__(self, *args, **kwargs):
@@ -385,6 +357,11 @@ class MenuView(UIView):
     
 
 class Synthesizer(a.View):
+    
+        # TODO: set ABOUT button with instructions + LINK to github
+        # TODO: add musical output flow to allow several sounds at once + list all presses on top
+        # TODO: add options to select octaves in the play process
+            
     def __init__(self):
         super().__init__()
         self.window.background_color = a.color.OLD_LACE
@@ -392,18 +369,62 @@ class Synthesizer(a.View):
         self.sprite_dict = None
         self.sprite_dict_inverted = None
         self.labels = None
-        
-        # TODO: set ABOUT button with instructions + LINK to github
-        # TODO: add musical output flow to allow several sounds at once + list all presses on top
-        # TODO: add options to select octaves in the play process
                 
-    def setup(self):
+    def setup(self, text="Synthesizer"):         
         self.init_sprites_storages()
         self.create_diatonic()
         self.create_chromatic()
         self.create_microtonal()
         self.sprites_dict_inversion()
-             
+        self.set_ui(text=text)      
+        
+    def set_ui(self, text=None):
+        self.ui_manager = UIManager()        
+        self.anchor = UIAnchorLayout(children=[])
+        self.ui_manager.add(self.anchor) 
+        self.open_menu_button()
+        self.open_about_button()
+        self.title(text=text)
+    
+    def title(self, text=None):   
+        self.anchor.add(
+            UILabel(
+                text=f"{text}",
+                font_name=FONT,
+                font_size=32,
+                text_color=a.color.GRAY),
+            anchor_y="top",
+            align_y=-150,
+            anchor_x="center")
+    
+    def open_about_button(self):
+        button = self.anchor.add(
+            SideButton(text="About"),
+            anchor_y="top",
+            align_y=-128,
+            anchor_x="right",
+            align_x=-250)
+        @button.event("on_click")
+        def on_click(_):
+            webbrowser.open("https://github.com/Lians-coder/microtonal_game_synthesizer/readme.md")  
+    
+    
+    
+    def open_menu_button(self):
+        print("Window:", self.window)
+        self.open_menu_button = self.anchor.add(
+            SideButton(
+                text="Menu",
+                font_size = 16),
+            anchor_y="top",
+            align_y=-50,
+            anchor_x="left",
+            align_x=250)        
+        @self.open_menu_button.event("on_click")
+        def to_menu(event):
+            game_view = MenuView()
+            self.window.show_view(game_view)
+               
     def init_sprites_storages(self):
         self.sprite_list = a.SpriteList()  # <sprite_obj_list>
         self.sprite_dict = {}              # SD  {note : <sprite_obj>}
@@ -411,23 +432,23 @@ class Synthesizer(a.View):
         self.labels = {}
        
     def create_diatonic(self, accuracy=-2, enabled=True):
-        textures = self.get_textures("diatonic")
+        textures = self._get_textures("diatonic")
         self.create_sprites_with_labels(
             notes=DIATONIC, textures=textures, accuracy=accuracy, font_size=30, enabled=enabled)     
         
     def create_chromatic(self, accuracy=-2, enabled=True):  
-        textures = self.get_textures("chromatic")
+        textures = self._get_textures("chromatic")
         self.create_sprites_with_labels(
             notes=CHROMATIC,  textures=textures, accuracy=accuracy, x=0.5, y=1, enabled=enabled) 
         
     def create_microtonal(self, accuracy=-2, enabled=True):   
-        textures = self.get_textures("microtonal")
+        textures = self._get_textures("microtonal")
         self.create_sprites_with_labels(
             notes=MICROTONAL, textures=textures, accuracy=accuracy, 
             x=0.25, y=0.5, x_offset=0.5, rotation=True, off=[4, 12], font_size=22,
             enabled=enabled)                    
     
-    def get_textures(self, name):
+    def _get_textures(self, name):
         textures = [
             f"./assets/images/{name}_regular.png",    # index 0
             f"./assets/images/{name}_right.png",      # index 1
@@ -439,13 +460,47 @@ class Synthesizer(a.View):
     def create_sprites_with_labels(self, notes, accuracy=None, enabled=True, **kwargs):
         positions = self.create_sprites(notes, accuracy=accuracy, enabled=enabled, **kwargs)
         for note, (x, y) in positions.items():
-            self.create_label(x, y, text=note, note=note,  font_size=kwargs.get("font_size", 26)) 
+            self._create_label(x, y, text=note, note=note,  font_size=kwargs.get("font_size", 26)) 
             
-    def set_accuracy(self, note):
+    def _set_accuracy(self, note):
         pass
-          
+    
+    def _get_texture_index(self, acc=None):
+        if acc == -2:         
+            i = 0
+        elif acc == -1:
+            i = 3
+        elif acc >= 90:
+            i = 1
+        elif acc <= 10:
+            i = 2
+        else:
+            i = 0
+        return i
+    
+    def _create_base_sprite(self, textures=None, scale=None):
+        sprite = a.Sprite(img=None, scale=scale)
+        for texture in textures:
+            sprite.append_texture(a.load_texture(texture))
+        return sprite
+    
+    def _get_sprite_position(self, i, x=0, y=0, x_offset=1, step=SPRITE_STEP):
+        sprite_x = SPRITE_POS_X + (x + i * x_offset) * step
+        sprite_y = SPRITE_POS_Y + y * step
+        return (sprite_x, sprite_y)
+    
+    def _set_angle(self, i, rotation=False, off=None):
+        if rotation:
+            angle = SPRITE_ANGLE
+            if i % 2 == 1:
+                angle *= -1
+            if i in off:
+                angle = 0
+            return angle
+        return 0    
+         
     def create_sprites(self, notes, 
-                       x=0, y=0, x_offset=1, step=SPRITE_STEP,
+                       x=0, y=0, x_offset=1,
                        textures=None, 
                        accuracy=None,
                        scale=SPRITE_SCALE,
@@ -456,50 +511,35 @@ class Synthesizer(a.View):
         for i, note in enumerate(notes):
             if not note:
                 continue
-            sprite = a.Sprite(img=None, scale=scale)
-            
-            for texture in textures:
-                sprite.append_texture(a.load_texture(texture))
-            acc = accuracy or self.set_accuracy(note)   
-            if acc == -2:         
-                index = 0
-            elif acc == -1:
-                index = 3
-            elif acc >= 90:
-                index = 1
-            elif acc <= 10:
-                index = 2
-            else:
-                index = 0
+            sprite = self._create_base_sprite(textures=textures, scale=scale)
+
+            acc = accuracy or self._set_accuracy(note)   
+            index = self._get_texture_index(acc)
             sprite.set_texture(index)
             
             sprite.is_enabled = enabled
             sprite.is_clicked = False            
             sprite.timer = 0.0
+
+            sprite_x, sprite_y = self._get_sprite_position(i=i, x=x, y=y, x_offset=x_offset)
             
-            sprite_x = SPRITE_POS_X + (x + i * x_offset) * step
-            sprite_y = SPRITE_POS_Y + y * step
+            if i in off:
+                sprite_x += 0.25 * SPRITE_STEP
+                sprite_y -= 0.25 * SPRITE_STEP
+                
             sprite.position = sprite_x, sprite_y
+                
+            angle = self._set_angle(i, rotation=rotation, off=off)
+            sprite.angle = angle
             
-            if rotation:
-                angle = SPRITE_ANGLE
-                if i % 2 == 1:
-                    angle *= -1
-                if i in off:
-                    sprite_x += 0.25 * SPRITE_STEP
-                    sprite_y -= 0.25 * SPRITE_STEP
-                    angle = 0
-                    sprite.position = sprite_x, sprite_y    
-                sprite.angle = angle
-   
             # TODO: add shades for each sprite
             
             self.sprite_list.append(sprite)
-            self.sprite_dict[note] = sprite
-            positions[note] = (sprite_x, sprite_y)
+            self.sprite_dict[note] = sprite            
+            positions[note] = sprite.position
         return positions
         
-    def create_label(
+    def _create_label(
         self, sx, sy, text, note, 
         color=a.color.LIGHT_SLATE_GRAY, font_size=26, font=FONT, 
         ax="center", ay="center"):
@@ -519,6 +559,7 @@ class Synthesizer(a.View):
              
     def on_draw(self, color=a.color.OLD_LACE):
         self.clear(color)
+        self.ui_manager.draw()
         self.sprite_list.draw()
         for label in self.labels.values():
             label.draw()
@@ -556,9 +597,7 @@ class Synthesizer(a.View):
             if s.is_clicked:
                 self.animate_sprite(delta_time, s)
                 
-    def animate_sprite(self, dt, s, img=False):
-        if img:
-            self.sprite_img = self.select_image_for_sprite()
+    def animate_sprite(self, dt, s):
         t_half = 0.2
         sc = SPRITE_SCALE
         sc_change = 0.04
@@ -570,7 +609,9 @@ class Synthesizer(a.View):
         else:
             s.scale = sc
             s.is_clicked = False
-    
+   
+    def on_show_view(self):
+        self.ui_manager.enable() 
                         
 class Challenge(Synthesizer):
     def __init__(self):
@@ -579,8 +620,7 @@ class Challenge(Synthesizer):
         self.note = ""  
         self.q = QUESTIONS
     
-    def setup(self):
-        # super().setup()
+    def setup(self, text="Challenge"):
         self.init_sprites_storages()
         self.create_diatonic()
         self.create_chromatic()
@@ -589,6 +629,7 @@ class Challenge(Synthesizer):
         else:
             self.create_microtonal()
         self.sprites_dict_inversion()
+        self.set_ui(text=text)
         
     def on_update(self, delta_time):
         super().on_update(delta_time)     
@@ -640,7 +681,8 @@ class Challenge(Synthesizer):
     
 
 class Training(Challenge):
-    pass
+    def setup(self):
+        super().setup(text="Training")
     # def __init__(self):        
     #     super().__init__()
         
@@ -653,36 +695,20 @@ class Training(Challenge):
     
     
 
-class StatisticsViev(Synthesizer):       
-    def setup(self):  
+class StatisticsViev(Synthesizer):     
+    def __init__(self):
+        super().__init__()
         self.statistics = self.get_statistics()
- 
-        self.ui_manager = UIManager()
-        self.anchor = UIAnchorLayout(children=[])
-        self.ui_manager.add(self.anchor)         
-        
-        self.title()
-        self.overall_stats()     
-        self.open_menu_button()
+          
+    def setup(self):  
+        super().setup(text="Statistics")
+        self.overall_stats()
         self.new_game_button()
-        self.reset_stats_button()           
-               
-        self.init_sprites_storages()
+        self.reset_stats_button()
+        
         self.create_diatonic(accuracy=None, enabled=False)
         self.create_chromatic(accuracy=None, enabled=False)
         self.create_microtonal(accuracy=None, enabled=False)
-        self.sprites_dict_inversion()
-
-    def title(self):   
-        self.anchor.add(
-            UILabel(
-                text="Statistics",
-                font_name=FONT,
-                font_size=32,
-                text_color=a.color.GRAY),
-            anchor_y="top",
-            align_y=-150,
-            anchor_x="center") 
     
     def overall_stats(self):
         if len(ANSWERS) == 0:
@@ -716,20 +742,6 @@ class StatisticsViev(Synthesizer):
             game_view = StatisticsViev()
             game_view.setup()
             self.window.show_view(game_view)
-    
-    def open_menu_button(self):
-        self.open_menu_button = self.anchor.add(
-            SideButton(
-                text="Menu",
-                font_size = 16),
-            anchor_y="top",
-            align_y=-50,
-            anchor_x="left",
-            align_x=250)        
-        @self.open_menu_button.event("on_click")
-        def to_menu(event):
-            game_view = MenuView()
-            self.window.show_view(game_view)
 
     def new_game_button(self):
         self.new_game_button = self.anchor.add(
@@ -749,12 +761,10 @@ class StatisticsViev(Synthesizer):
             game_view.setup()
             self.window.show_view(game_view)    
 
-    def set_accuracy(self, note):
+    def _set_accuracy(self, note):
         if note not in self.statistics:
-            acc = -1
-        else:
-            acc = self.statistics[note]["accuracy"]
-        return acc
+            return -1
+        return self.statistics[note]["accuracy"]
     
     def create_sprites_with_labels(self, notes, accuracy=None, enabled=False, **kwargs):
         positions = self.create_sprites(notes, accuracy=accuracy, enabled=enabled, **kwargs)
@@ -764,15 +774,15 @@ class StatisticsViev(Synthesizer):
             else:
                 acc = round(self.statistics[note]["accuracy"])
                 text = f"{acc}%"
-            self.create_label(x, y, text=text, note=note, font=FONT_MENU, font_size=kwargs.get("font_size", 26)) 
+            self._create_label(x, y, text=text, note=note, font=FONT_MENU, font_size=kwargs.get("font_size", 26)) 
                 
     def on_draw(self):
         # TODO rewrite to allow redrawing rather than resetting view (?)
         super().on_draw()
         self.ui_manager.draw()
      
-    def on_show_view(self):
-        self.ui_manager.enable()
+    # def on_show_view(self):
+    #     self.ui_manager.enable()
                       
     @staticmethod          
     def get_statistics():
@@ -800,8 +810,7 @@ def main():
     window.center_window()
     game = MenuView()
     window.show_view(game)
-    a.run()
-    
+    a.run()    
     
 if __name__ == "__main__":
     main()
