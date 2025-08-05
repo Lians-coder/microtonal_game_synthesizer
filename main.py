@@ -15,8 +15,9 @@ from arcade.gui import (
 from random import choice
 from collections import defaultdict
 import webbrowser
-import wave
+# from time import sleep
 
+import wave
 from defines import (
     SCREEN_WIDTH, SCREEN_HEIGHT, TITLE,
     DIATONIC, CHROMATIC, MICROTONAL, SCALE_CHROMATIC, SCALE_MICROTONAL,
@@ -24,9 +25,17 @@ from defines import (
     SPRITE_SCALE, SPRITE_POS_X, SPRITE_POS_Y, SPRITE_STEP, SPRITE_ANGLE,
     FONT, FONT_MENU,
     PITCH, GAME_VARIANT, SELECTED, OCTAVE_MODIFIERS, QUESTIONS, ANSWERS,
+    LINK_ABOUT, LINK_PROFILE,
+    BUTTON_COLOR_1, BUTTON_COLOR_2, BUTTON_COLOR_3,
 )
 
 # TODO add png checks and creation if needed
+# TODO load fonts
+# TODO rewrite private and static methods
+# TODO write ABOUT in the repo
+# TODO wipe all print debug statements
+# TODO wipe all non useful comments
+# TODO document all funcs
 
 class SliderDisable(UISlider):
     def __init__(self, *args, **kwargs):
@@ -40,27 +49,30 @@ class SliderDisable(UISlider):
 
 class SideButton(UIFlatButton):
     def __init__(self, text, font=FONT_MENU,
-                 font_size=18, size_hint=(0.09, 0.05)):
-        super().__init__()
+                 font_size=18, size_hint=(0.09, 0.05),
+                 font_color=BUTTON_COLOR_1, 
+                 color=BUTTON_COLOR_2, 
+                 bg_color=BUTTON_COLOR_3):
+        super().__init__()        
         self.text = f"{text}"
         self.style = {
         "press": UIFlatButtonStyle(
             font_name=font,
-            font_color=a.color.LEMON_CURRY,
-            bg=a.color.JASMINE,
+            font_color=font_color,
+            bg=color,
             font_size=font_size),
         "normal": UIFlatButtonStyle(            
             font_name=font,
-            font_color=a.color.LEMON_CURRY,
-            bg=a.color.FLORAL_WHITE,
+            font_color=font_color,
+            bg=bg_color,
             font_size=font_size),
         "hover": UIFlatButtonStyle(
             font_name=font,
-            font_color=a.color.FLORAL_WHITE,
-            bg=a.color.LEMON_CURRY,                        
+            font_color=bg_color,
+            bg=font_color,                        
             font_size=font_size)}
         self.size_hint = size_hint
-   
+        
    
 class MenuView(UIView):
     def __init__(self):        
@@ -95,7 +107,7 @@ class MenuView(UIView):
             align_x=250)
         @button.event("on_click")
         def on_click(_):
-            webbrowser.open("https://github.com/Lians-coder")
+            webbrowser.open(LINK_PROFILE)
 
     def open_about_button(self):
         button = self.anchor.add(
@@ -106,7 +118,7 @@ class MenuView(UIView):
             align_x=-250)
         @button.event("on_click")
         def on_click(_):
-            webbrowser.open("https://github.com/Lians-coder/microtonal_game_synthesizer/readme.md")        
+            webbrowser.open(LINK_ABOUT)        
                 
     def title(self):    
         title = UILabel(
@@ -315,9 +327,9 @@ class MenuView(UIView):
                     
     def start(self):   
         self.start_button = SideButton(
-            text="Start", font=FONT, font_size=28, size_hint=(1, 1))
+            text="Start", font=FONT, font_size=28, size_hint=(1, 1),
+            font_color=BUTTON_COLOR_3, color=BUTTON_COLOR_2, bg_color=BUTTON_COLOR_1)
         self.grid.add(self.start_button, column=1, row=3)
-        
         @self.start_button.event("on_click")
         def on_start(event):
             match GAME_VARIANT:
@@ -326,8 +338,7 @@ class MenuView(UIView):
                 case "Training":
                     game_view = Training()
                 case "Synthesizer":
-                    game_view = Synthesizer()
-                    
+                    game_view = Synthesizer()   
             game_view.setup()
             self.window.show_view(game_view)    
 
@@ -358,9 +369,9 @@ class MenuView(UIView):
 
 class Synthesizer(a.View):
     
-        # TODO: set ABOUT button with instructions + LINK to github
-        # TODO: add musical output flow to allow several sounds at once + list all presses on top
-        # TODO: add options to select octaves in the play process
+    # TODO: add musical output flow to allow several sounds at once + list all presses on top
+    # TODO: add options to select octaves in the play process
+    # (TODO) add key play options
             
     def __init__(self):
         super().__init__()
@@ -399,23 +410,23 @@ class Synthesizer(a.View):
     
     def open_about_button(self):
         button = self.anchor.add(
-            SideButton(text="About"),
+            SideButton(
+                text="About",
+                font_size=16),
             anchor_y="top",
-            align_y=-128,
+            align_y=-50,
             anchor_x="right",
             align_x=-250)
         @button.event("on_click")
         def on_click(_):
-            webbrowser.open("https://github.com/Lians-coder/microtonal_game_synthesizer/readme.md")  
-    
-    
-    
+            webbrowser.open(LINK_ABOUT)  
+
     def open_menu_button(self):
         print("Window:", self.window)
         self.open_menu_button = self.anchor.add(
             SideButton(
                 text="Menu",
-                font_size = 16),
+                font_size=16),
             anchor_y="top",
             align_y=-50,
             anchor_x="left",
@@ -450,17 +461,18 @@ class Synthesizer(a.View):
     
     def _get_textures(self, name):
         textures = [
-            f"./assets/images/{name}_regular.png",    # index 0
-            f"./assets/images/{name}_right.png",      # index 1
-            f"./assets/images/{name}_wrong.png",      # index 2
-            f"./assets/images/{name}_not_used.png",   # index 3
+            f"./assets/images/{name}_regular.png",
+            f"./assets/images/{name}_right.png",
+            f"./assets/images/{name}_wrong.png",
+            f"./assets/images/{name}_not_used.png",
         ]      
         return textures 
     
     def create_sprites_with_labels(self, notes, accuracy=None, enabled=True, **kwargs):
         positions = self.create_sprites(notes, accuracy=accuracy, enabled=enabled, **kwargs)
         for note, (x, y) in positions.items():
-            self._create_label(x, y, text=note, note=note,  font_size=kwargs.get("font_size", 26)) 
+            self._create_label(x, y, text=note, note=note, 
+                               font_size=kwargs.get("font_size", 26)) 
             
     def _set_accuracy(self, note):
         pass
@@ -612,6 +624,7 @@ class Synthesizer(a.View):
    
     def on_show_view(self):
         self.ui_manager.enable() 
+        
                         
 class Challenge(Synthesizer):
     def __init__(self):
@@ -619,6 +632,9 @@ class Challenge(Synthesizer):
         self.waiting_for_click = False
         self.note = ""  
         self.q = QUESTIONS
+        self.previous = None
+        # self._pending_transition = False
+        # self._transition_timer = None
     
     def setup(self, text="Challenge"):
         self.init_sprites_storages()
@@ -632,8 +648,20 @@ class Challenge(Synthesizer):
         self.set_ui(text=text)
         
     def on_update(self, delta_time):
-        super().on_update(delta_time)     
-        while not self.waiting_for_click: 
+        super().on_update(delta_time)
+        # if self._pending_transition:
+        #     self._transition_timer -= delta_time
+        #     if self._transition_timer <= 0:
+        #         self.waiting_for_click = False
+        #         self._pending_transition = False
+        #         self.go_to_stats()
+        
+        # if self._transition_timer:
+        #     while self._transition_timer > 0:
+        #         self._transition_timer -= delta_time
+        #     self.go_to_stats()
+                        
+        while not self.waiting_for_click:   
             print(f"{self.q = }")       
             if self.q > 0:            
                 if SELECTED == "All notes":
@@ -642,23 +670,33 @@ class Challenge(Synthesizer):
                     self.note = choice(SCALE_CHROMATIC) 
                 self.play_note(self.note)
                 print(f"{self.note = }")
-                self.waiting_for_click = True
-                
+                self.waiting_for_click = True      
+        
+    def go_to_stats(self):
+        game_view = StatisticsViev()
+        game_view.setup()
+        self.window.show_view(game_view)    
+                   
     def set_stats(self, s):
-        print("run stats")
+        print("run STATS")
+        self.previous = s
         guess = self.sprite_dict_inverted[s]
+        self.change_texture_on_answ(s, guess)
         note_dict = {
             "note": self.note,
             "guess": guess,
             "correct": self.note == guess}
         print(f"{note_dict}")
         ANSWERS.append(note_dict)
-        
-             
-    def on_mouse_press(self, x, y, button, _, audio=True):
+    
+    def change_texture_on_answ(self, s, guess):
+        pass
+    
+    def change_texture_back(self):
+        pass
+            
+    def on_mouse_press(self, x, y, button, _, audio=False):
         super().on_mouse_press(x, y, button, _, audio=False)
-        # if not self.waiting_for_click:
-        #     return
         if button == a.MOUSE_BUTTON_LEFT:
             print("get mouse")            
             colliding_sprites = a.get_sprites_at_point((x, y), self.sprite_list)
@@ -666,33 +704,57 @@ class Challenge(Synthesizer):
                 print("collides")
                 s = colliding_sprites[-1]                    
                 if s.is_enabled:
+                    if self.previous:
+                        self.change_texture_back()
                     self.set_stats(s)
                     self.q -= 1
                     self.waiting_for_click = False
-                # else:
-                #     self.waiting_for_click = True
             if self.q == 0:
-                game_view = StatisticsViev()
-                game_view.setup()
-                self.window.show_view(game_view)
-            
+                # self._transition_timer = 1
+                # self.waiting_for_click = True
+                self.go_to_stats()
                 
+            
     # TODO: add questions left 
     
 
 class Training(Challenge):
+    def __init__(self):
+        super().__init__()
+        self.right_sprite = None
+    
     def setup(self):
         super().setup(text="Training")
-    # def __init__(self):        
-    #     super().__init__()
         
-    # TODO: addcheckbox to decide if the note selected should be playesd & formula for thereafter calculations of delay between notes
-    # TODO set greenish value for bg     
-    # def animate_sprite(self, *args, **kwargs):
-    #     super().animate_sprite(*args, img=True, **kwargs)
+    # def on_mouse_press(self, x, y, button, _, audio):
+    #     super().on_mouse_press(x, y, button, _, audio=False)
+    #     ...
+        
+    def change_texture_on_answ(self, s, guess):
+        print("from training: change_texture_on_answ")
+        if self.note == guess:
+            print("1 - from change_texture_on_answ")
+            print(f"{self.note = }\n{guess = }")
+            s.set_texture(1)
+            print("1 - set text to s right")
+        else:
+            s.set_texture(2)
+            print("2 - set text to wrong")
+            self.right_sprite = self.sprite_dict[self.note]
+            print(f"{self.right_sprite = }")
+            self.right_sprite.set_texture(1)
+            print("2 - set text to right sprite")
+        # self.to_stats = False
+            
+    def change_texture_back(self):
+        print("from training: change_texture_back")
+        self.previous.set_texture(0)
+        if self.right_sprite:
+            self.right_sprite.set_texture(0)
+        # self.to_stats = True
+
     
     # TODO: add blue for played and outline for checke
-    
     
 
 class StatisticsViev(Synthesizer):     
@@ -704,8 +766,7 @@ class StatisticsViev(Synthesizer):
         super().setup(text="Statistics")
         self.overall_stats()
         self.new_game_button()
-        self.reset_stats_button()
-        
+        self.reset_stats_button()   
         self.create_diatonic(accuracy=None, enabled=False)
         self.create_chromatic(accuracy=None, enabled=False)
         self.create_microtonal(accuracy=None, enabled=False)
@@ -747,7 +808,10 @@ class StatisticsViev(Synthesizer):
         self.new_game_button = self.anchor.add(
             SideButton(
                 text="New Game",
-                font_size = 16),
+                font_size = 16,
+                font_color=BUTTON_COLOR_3, 
+                color=BUTTON_COLOR_2, 
+                bg_color=BUTTON_COLOR_1),
             anchor_y="top",
             align_y=-50,
             anchor_x="center")        
@@ -777,12 +841,9 @@ class StatisticsViev(Synthesizer):
             self._create_label(x, y, text=text, note=note, font=FONT_MENU, font_size=kwargs.get("font_size", 26)) 
                 
     def on_draw(self):
-        # TODO rewrite to allow redrawing rather than resetting view (?)
+        # (TODO) rewrite to allow redrawing rather than resetting view (?)
         super().on_draw()
         self.ui_manager.draw()
-     
-    # def on_show_view(self):
-    #     self.ui_manager.enable()
                       
     @staticmethod          
     def get_statistics():
