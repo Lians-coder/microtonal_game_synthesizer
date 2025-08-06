@@ -29,13 +29,21 @@ from defines import (
     BUTTON_COLOR_1, BUTTON_COLOR_2, BUTTON_COLOR_3,
 )
 
+# TODO style dropdown
+# TODO show played and guessed or RIGHT in Training mode
 # TODO add png checks and creation if needed
-# TODO load fonts
-# TODO rewrite private and static methods
-# TODO write ABOUT in the repo
-# TODO wipe all print debug statements
+# TODO update ABOUT in the repo (usage, install, screenshots etc)
 # TODO wipe all non useful comments
-# TODO document all funcs
+# TODO make exe file + linux & mac versions
+
+# (TODO) fix glitches in training mode (last sprite doesn't change; periodical blinking-switching of textures)
+# (TODO) document all funcs
+# (TODO) allow to select notes from synth view to practice later
+# (TODO) allow to save json version of customization made
+# (TODO) rewrite private and static methods
+# (TODO) add different timbres
+# (TODO) add other octaves
+# (TODO) allow other non-standard microtonal temperaments
 
 class SliderDisable(UISlider):
     def __init__(self, *args, **kwargs):
@@ -422,7 +430,6 @@ class Synthesizer(a.View):
             webbrowser.open(LINK_ABOUT)  
 
     def open_menu_button(self):
-        print("Window:", self.window)
         self.open_menu_button = self.anchor.add(
             SideButton(
                 text="Menu",
@@ -596,8 +603,7 @@ class Synthesizer(a.View):
         if symbol == a.key.ESCAPE:
             game_view = MenuView()
             self.window.show_view(game_view)
-        # TODO: add button that represent escape - to menu
-        
+       
         # TODO: add key bindings for each note        
         # if symbol == a.key.A:
         #     s = self.sprite_dict["A"]
@@ -633,8 +639,6 @@ class Challenge(Synthesizer):
         self.note = ""  
         self.q = QUESTIONS
         self.previous = None
-        # self._pending_transition = False
-        # self._transition_timer = None
     
     def setup(self, text="Challenge"):
         self.init_sprites_storages()
@@ -649,36 +653,16 @@ class Challenge(Synthesizer):
         
     def on_update(self, delta_time):
         super().on_update(delta_time)
-        # if self._pending_transition:
-        #     self._transition_timer -= delta_time
-        #     if self._transition_timer <= 0:
-        #         self.waiting_for_click = False
-        #         self._pending_transition = False
-        #         self.go_to_stats()
-        
-        # if self._transition_timer:
-        #     while self._transition_timer > 0:
-        #         self._transition_timer -= delta_time
-        #     self.go_to_stats()
-                        
-        while not self.waiting_for_click:   
-            print(f"{self.q = }")       
+        while not self.waiting_for_click:
             if self.q > 0:            
                 if SELECTED == "All notes":
                     self.note = choice(SCALE_MICROTONAL)
                 else:
                     self.note = choice(SCALE_CHROMATIC) 
                 self.play_note(self.note)
-                print(f"{self.note = }")
-                self.waiting_for_click = True      
-        
-    def go_to_stats(self):
-        game_view = StatisticsViev()
-        game_view.setup()
-        self.window.show_view(game_view)    
+                self.waiting_for_click = True
                    
     def set_stats(self, s):
-        print("run STATS")
         self.previous = s
         guess = self.sprite_dict_inverted[s]
         self.change_texture_on_answ(s, guess)
@@ -686,7 +670,6 @@ class Challenge(Synthesizer):
             "note": self.note,
             "guess": guess,
             "correct": self.note == guess}
-        print(f"{note_dict}")
         ANSWERS.append(note_dict)
     
     def change_texture_on_answ(self, s, guess):
@@ -698,23 +681,23 @@ class Challenge(Synthesizer):
     def on_mouse_press(self, x, y, button, _, audio=False):
         super().on_mouse_press(x, y, button, _, audio=False)
         if button == a.MOUSE_BUTTON_LEFT:
-            print("get mouse")            
             colliding_sprites = a.get_sprites_at_point((x, y), self.sprite_list)
             if colliding_sprites:
-                print("collides")
                 s = colliding_sprites[-1]                    
                 if s.is_enabled:
                     if self.previous:
                         self.change_texture_back()
                     self.set_stats(s)
-                    self.q -= 1
                     self.waiting_for_click = False
-            if self.q == 0:
-                # self._transition_timer = 1
-                # self.waiting_for_click = True
-                self.go_to_stats()
-                
-            
+                    self.q -= 1
+                if self.q == 0:
+                    self.go_to_stats()
+
+    def go_to_stats(self):
+        game_view = StatisticsViev()
+        game_view.setup()
+        self.window.show_view(game_view)
+      
     # TODO: add questions left 
     
 
@@ -726,36 +709,19 @@ class Training(Challenge):
     def setup(self):
         super().setup(text="Training")
         
-    # def on_mouse_press(self, x, y, button, _, audio):
-    #     super().on_mouse_press(x, y, button, _, audio=False)
-    #     ...
-        
     def change_texture_on_answ(self, s, guess):
-        print("from training: change_texture_on_answ")
         if self.note == guess:
-            print("1 - from change_texture_on_answ")
-            print(f"{self.note = }\n{guess = }")
             s.set_texture(1)
-            print("1 - set text to s right")
         else:
             s.set_texture(2)
-            print("2 - set text to wrong")
             self.right_sprite = self.sprite_dict[self.note]
-            print(f"{self.right_sprite = }")
             self.right_sprite.set_texture(1)
-            print("2 - set text to right sprite")
-        # self.to_stats = False
             
     def change_texture_back(self):
-        print("from training: change_texture_back")
         self.previous.set_texture(0)
         if self.right_sprite:
             self.right_sprite.set_texture(0)
-        # self.to_stats = True
-
-    
-    # TODO: add blue for played and outline for checke
-    
+        
 
 class StatisticsViev(Synthesizer):     
     def __init__(self):

@@ -4,14 +4,21 @@ import wand.image
 from defines import (
     BATTLESHIP_GREY,
     FLORAL_WHITE,
-    LIGHT_GRAY_CH,
+    GRAY,
     DIAMOND,
     LIGHT_GRAY_CH,
     BRINK_PINK,
     SHAMROCK_GREEN,
     PINK,
 )
+import os
 
+# TODO \/
+
+# check if ./assets/images, create if needed
+os.path.join(os.getcwd(), "assets", "images")
+
+# check if populated with proper names, made svg - png if needed
 
 def setup_img():
     w_h     = [(140, 256), (140, 240),  (93, 114)]
@@ -76,4 +83,4 @@ def svg2png(w, h, n, fc, sc):
 
 if __name__ == "__main__":
     setup_img()
-
+    # return True if all set - in MAIN start app when true
