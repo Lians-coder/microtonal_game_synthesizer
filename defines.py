@@ -1,6 +1,7 @@
 import arcade 
 import pyglet
 import os
+import sys
 
 # --- Window ---
 
@@ -33,9 +34,24 @@ SPRITE_STEP  = 160
 SPRITE_ANGLE = 5
 
 # --- Fonts ---
+def resource_path(relative_path):
+    """ Get absolute path to resource (works for dev and for PyInstaller) """
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        base_path = sys._MEIPASS           # Running in a PyInstaller bundle
+    else:
+        base_path = os.path.abspath(".")  # Running in normal development
+    return os.path.join(base_path, relative_path)
 
-font_path      = os.path.join(os.getcwd(), "assets", "fonts", "CASTELAR.TTF")
-font_menu_path = os.path.join(os.getcwd(), "assets", "fonts", "AGENCYR.TTF")
+font_path      = resource_path("assets/fonts/CASTELAR.TTF")
+font_menu_path = resource_path("assets/fonts/AGENCYR.TTF")
+
+# #    To run as module
+# font_path      = os.path.join(os.getcwd(), "assets", "fonts", "CASTELAR.TTF")
+# font_menu_path = os.path.join(os.getcwd(), "assets", "fonts", "AGENCYR.TTF")
+# #    To make executadle:
+# font_path      = "assets/fonts/CASTELAR.TTF"
+# font_menu_path = "assets/fonts/AGENCYR.TTF"
+
 pyglet.font.add_file(font_path)
 pyglet.font.add_file(font_menu_path)
 

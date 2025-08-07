@@ -27,8 +27,13 @@ from defines import (
     LINK_ABOUT, LINK_PROFILE,
     BUTTON_COLOR_1, BUTTON_COLOR_2, BUTTON_COLOR_3, BUTTON_COLOR_4,
 )
+import sys
+import os
 
-
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    os.chdir(sys._MEIPASS)
+    
+    
 # TODO add png checks and creation if needed
 # TODO update ABOUT in the repo (usage, install, screenshots etc)
 # TODO make exe file + linux & mac versions
