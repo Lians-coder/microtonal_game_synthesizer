@@ -25,7 +25,7 @@ Whether you're a music theory geek, ear training enthusiast, or just curious abo
 
 3. ⚙️ **Fully Customizable Settings**:
 
-   - Set **A4** (concert pitch) reference pitch from **400 Hz to 480 Hz**.
+   - Set **A4** (concert pitch) reference pitch from **380 Hz to 480 Hz**.
    - Choose octaves to focus on: **4th, 5th, 6th** – or any combination.
    - Select the number of questions: from **5 to 100**.
 

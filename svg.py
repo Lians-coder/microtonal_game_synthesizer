@@ -14,10 +14,8 @@ from defines import (
 import os
 
 # TODO \/
-
 # check if ./assets/images, create if needed
 os.path.join(os.getcwd(), "assets", "images")
-
 # check if populated with proper names, made svg - png if needed
 
 def setup_img():
