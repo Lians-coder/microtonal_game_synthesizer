@@ -61,6 +61,7 @@ LINK_PROFILE = "https://github.com/Lians-coder"
 BUTTON_COLOR_1 = arcade.color.LEMON_CURRY
 BUTTON_COLOR_2 = arcade.color.JASMINE
 BUTTON_COLOR_3 = arcade.color.FLORAL_WHITE
+BUTTON_COLOR_4 = arcade.color.BISTRE
 
 # --- Colors ---
 

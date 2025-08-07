@@ -15,7 +15,6 @@ from arcade.gui import (
 from random import choice
 from collections import defaultdict
 import webbrowser
-# from time import sleep
 
 import wave
 from defines import (
@@ -26,17 +25,15 @@ from defines import (
     FONT, FONT_MENU,
     PITCH, GAME_VARIANT, SELECTED, OCTAVE_MODIFIERS, QUESTIONS, ANSWERS,
     LINK_ABOUT, LINK_PROFILE,
-    BUTTON_COLOR_1, BUTTON_COLOR_2, BUTTON_COLOR_3,
+    BUTTON_COLOR_1, BUTTON_COLOR_2, BUTTON_COLOR_3, BUTTON_COLOR_4,
 )
 
-# TODO style dropdown
-# TODO show played and guessed or RIGHT in Training mode
+
 # TODO add png checks and creation if needed
 # TODO update ABOUT in the repo (usage, install, screenshots etc)
-# TODO wipe all non useful comments
 # TODO make exe file + linux & mac versions
+# TODO structure source code
 
-# (TODO) fix glitches in training mode (last sprite doesn't change; periodical blinking-switching of textures)
 # (TODO) document all funcs
 # (TODO) allow to select notes from synth view to practice later
 # (TODO) allow to save json version of customization made
@@ -45,6 +42,19 @@ from defines import (
 # (TODO) add other octaves
 # (TODO) allow other non-standard microtonal temperaments
 
+# (TODO) rewrite 0n_update in challenge & training to make it modular
+
+# Synth
+# TODO: add musical output flow to allow several sounds at once + list all presses on top
+# (TODO): add options to select octaves in the play process
+# (TODO): add shades for each sprite
+# TODO: add key bindings for each note
+
+# Statistics
+# (TODO) on_draw: rewrite to allow redrawing rather than resetting view (?)
+# (TODO) verbose_hint: add some more stats - e.g., most confused with, absolute numdesr of questions and answers etc
+# should pop up when hover on sprite with note info
+            
 class SliderDisable(UISlider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,31 +66,98 @@ class SliderDisable(UISlider):
 
 
 class SideButton(UIFlatButton):
-    def __init__(self, text, font=FONT_MENU,
-                 font_size=18, size_hint=(0.09, 0.05),
-                 font_color=BUTTON_COLOR_1, 
-                 color=BUTTON_COLOR_2, 
-                 bg_color=BUTTON_COLOR_3):
-        super().__init__()        
+    def __init__(
+        self, text, font=FONT_MENU,
+        font_size=18, size_hint=(0.09, 0.05),
+        color_dark=BUTTON_COLOR_1, 
+        color_middle=BUTTON_COLOR_2, 
+        color_light=BUTTON_COLOR_3):
+        super().__init__()
+        
         self.text = f"{text}"
         self.style = {
         "press": UIFlatButtonStyle(
             font_name=font,
-            font_color=font_color,
-            bg=color,
+            font_color=color_dark,
+            bg=color_middle,
             font_size=font_size),
         "normal": UIFlatButtonStyle(            
             font_name=font,
-            font_color=font_color,
-            bg=bg_color,
+            font_color=color_dark,
+            bg=color_light,
             font_size=font_size),
         "hover": UIFlatButtonStyle(
             font_name=font,
-            font_color=bg_color,
-            bg=font_color,                        
+            font_color=color_light,
+            bg=color_dark,                        
             font_size=font_size)}
         self.size_hint = size_hint
         
+   
+class StyledDropdown(UIDropdown):
+    def __init__(
+        self, default=None, options=None,
+        font=FONT_MENU, font_size=18,
+        color_dark=BUTTON_COLOR_1,
+        color_middle=BUTTON_COLOR_2,
+        color_light=BUTTON_COLOR_3,
+        color_darkest=BUTTON_COLOR_4):
+        
+        self.primary_style = {
+            "normal": UIFlatButtonStyle(
+                font_name=font,
+                font_color=color_light,
+                bg=color_dark,
+                font_size=font_size),
+            "hover": UIFlatButtonStyle(
+                font_name=font,
+                font_color=color_light,
+                bg=color_middle,
+                font_size=font_size),
+            "press": UIFlatButtonStyle(
+                font_name=font,
+                font_color=color_dark,
+                bg=color_middle,
+                font_size=font_size)}
+        self.dropdown_style = {
+            "normal": UIFlatButtonStyle(
+                font_name=font,
+                font_color=color_middle,
+                bg=color_darkest,
+                font_size=font_size),
+            "hover": UIFlatButtonStyle(
+                font_name=font,
+                font_color=color_light,
+                bg=color_dark,
+                font_size=font_size),
+            "press": UIFlatButtonStyle(
+                font_name=font,
+                font_color=color_light,
+                bg=color_middle,
+                font_size=font_size)}
+        self.active_style = {
+            "normal": UIFlatButtonStyle(
+                font_name=font,
+                font_color=color_dark,
+                bg=color_middle,
+                font_size=font_size),
+            "hover": UIFlatButtonStyle(
+                font_name=font,
+                font_color=color_light,
+                bg=color_middle,
+                font_size=font_size),
+            "press": UIFlatButtonStyle(
+                font_name=font,
+                font_color=color_light,
+                bg=color_dark,
+                font_size=font_size)}
+        super().__init__(
+            default=default,
+            options=options,
+            primary_style=self.primary_style,
+            dropdown_style=self.dropdown_style,
+            active_style=self.active_style)
+   
    
 class MenuView(UIView):
     def __init__(self):        
@@ -137,14 +214,14 @@ class MenuView(UIView):
         self.grid.add(title, column=0, column_span=2, row=0)
         
     def set_game_variant(self):          
-        self.variant = UIDropdown(
+        self.variant = StyledDropdown(
             default="Challenge",
             options=["Challenge", "Training", "Synthesizer"])
         self.variant_warning = UILabel(
                     text="\n",
                     font_name=FONT_MENU,
-                    font_size=19,
-                    text_color=a.color.LEMON_CURRY)
+                    font_size=18,
+                    text_color=a.color.GRAY)
         self.sync_game_variant()  
               
         self.grid.add(UIBoxLayout(
@@ -171,7 +248,7 @@ class MenuView(UIView):
             else:
                 self.question_slider.enabled = True
                 if GAME_VARIANT == "Training":
-                    self.variant_warning.text = "This mode will give you feedback"
+                    self.variant_warning.text = "Feedback after each guess"
                 else:
                     self.variant_warning.text = "No feedback during the game"
         
@@ -310,7 +387,7 @@ class MenuView(UIView):
     def add_pitch_things(self):    
         self.pitch_slider = UISlider(
             value=440,
-            min_value=400,
+            min_value=380,
             max_value=480,
             step=1)
         self.sync_pitch()
@@ -335,8 +412,7 @@ class MenuView(UIView):
                     
     def start(self):   
         self.start_button = SideButton(
-            text="Start", font=FONT, font_size=28, size_hint=(1, 1),
-            font_color=BUTTON_COLOR_3, color=BUTTON_COLOR_2, bg_color=BUTTON_COLOR_1)
+            text="Start", font=FONT, font_size=30, size_hint=(1, 1))
         self.grid.add(self.start_button, column=1, row=3)
         @self.start_button.event("on_click")
         def on_start(event):
@@ -376,11 +452,6 @@ class MenuView(UIView):
     
 
 class Synthesizer(a.View):
-    
-    # TODO: add musical output flow to allow several sounds at once + list all presses on top
-    # TODO: add options to select octaves in the play process
-    # (TODO) add key play options
-            
     def __init__(self):
         super().__init__()
         self.window.background_color = a.color.OLD_LACE
@@ -541,17 +612,12 @@ class Synthesizer(a.View):
             sprite.timer = 0.0
 
             sprite_x, sprite_y = self._get_sprite_position(i=i, x=x, y=y, x_offset=x_offset)
-            
             if i in off:
                 sprite_x += 0.25 * SPRITE_STEP
-                sprite_y -= 0.25 * SPRITE_STEP
-                
+                sprite_y -= 0.25 * SPRITE_STEP                
             sprite.position = sprite_x, sprite_y
-                
             angle = self._set_angle(i, rotation=rotation, off=off)
             sprite.angle = angle
-            
-            # TODO: add shades for each sprite
             
             self.sprite_list.append(sprite)
             self.sprite_dict[note] = sprite            
@@ -603,12 +669,6 @@ class Synthesizer(a.View):
         if symbol == a.key.ESCAPE:
             game_view = MenuView()
             self.window.show_view(game_view)
-       
-        # TODO: add key bindings for each note        
-        # if symbol == a.key.A:
-        #     s = self.sprite_dict["A"]
-        #     s.is_clicked = True
-        #     self.play_on_sprite(s)
             
     def on_update(self, delta_time):
         for s in self.sprite_list:
@@ -636,11 +696,14 @@ class Challenge(Synthesizer):
     def __init__(self):
         super().__init__()
         self.waiting_for_click = False
+        self.current_answers = []
         self.note = ""  
         self.q = QUESTIONS
         self.previous = None
+        self.transition_timer = None
     
     def setup(self, text="Challenge"):
+        self.transition_delay = 0
         self.init_sprites_storages()
         self.create_diatonic()
         self.create_chromatic()
@@ -653,6 +716,13 @@ class Challenge(Synthesizer):
         
     def on_update(self, delta_time):
         super().on_update(delta_time)
+        self.questions_left()
+        if self.transition_timer is not None:
+            self.transition_timer += delta_time
+            if self.transition_timer >= self.transition_delay:
+                self.go_to_stats()
+                self.transition_timer = None 
+            
         while not self.waiting_for_click:
             if self.q > 0:            
                 if SELECTED == "All notes":
@@ -661,6 +731,8 @@ class Challenge(Synthesizer):
                     self.note = choice(SCALE_CHROMATIC) 
                 self.play_note(self.note)
                 self.waiting_for_click = True
+            else:
+                break
                    
     def set_stats(self, s):
         self.previous = s
@@ -671,6 +743,26 @@ class Challenge(Synthesizer):
             "guess": guess,
             "correct": self.note == guess}
         ANSWERS.append(note_dict)
+        self.current_answers.append(note_dict)
+        self.feedback()
+    
+    def feedback(self):
+        pass
+    
+    def questions_left(self, align_y=-250):
+        if getattr(self, "q_left", None) and self.q_left in self.anchor.children:
+            self.anchor.remove(self.q_left)            
+        self.q_left = UILabel(
+            text=f"Questions left: {self.q}",
+            font_name=FONT_MENU,
+            font_size=20,
+            text_color=a.color.GRAY,
+            height=80)
+        self.anchor.add(
+            self.q_left,
+            anchor_y="top",
+            align_y=align_y,
+            anchor_x="center")
     
     def change_texture_on_answ(self, s, guess):
         pass
@@ -691,24 +783,56 @@ class Challenge(Synthesizer):
                     self.waiting_for_click = False
                     self.q -= 1
                 if self.q == 0:
-                    self.go_to_stats()
+                    self.transition_timer = 0.0
 
     def go_to_stats(self):
         game_view = StatisticsViev()
         game_view.setup()
         self.window.show_view(game_view)
-      
-    # TODO: add questions left 
     
 
 class Training(Challenge):
     def __init__(self):
         super().__init__()
-        self.right_sprite = None
+        self.right_sprite = None  
     
     def setup(self):
-        super().setup(text="Training")
+        super().setup(text="Training")        
+        self.transition_delay = 0.7
+        self.feedback() 
+    
+    def feedback(self):
+        if not self.current_answers:
+            return
+        last_answer = self.current_answers[-1]
+        note = last_answer["note"]
+        guess = last_answer["guess"]
+        correct = last_answer["correct"]
         
+        for label in getattr(self, "feedback_labels", []):
+            if label in self.anchor.children:
+                self.anchor.remove(label)
+        self.feedback_labels = []
+        
+        lines = [f"Played: {note}", f"Guess: {guess}"]     
+        if correct:
+            color = a.color.SHAMROCK_GREEN
+        else:
+            color = a.color.RED
+        for i, line in enumerate(lines):    
+            label = UILabel(
+                text=line,
+                font_name=FONT_MENU,
+                font_size=28,
+                text_color=color,
+                height=80)        
+            self.anchor.add(
+                label,
+                anchor_y="top",
+                align_y=-220 - (i * 48),
+                anchor_x="center")
+            self.feedback_labels.append(label)
+                
     def change_texture_on_answ(self, s, guess):
         if self.note == guess:
             s.set_texture(1)
@@ -721,6 +845,10 @@ class Training(Challenge):
         self.previous.set_texture(0)
         if self.right_sprite:
             self.right_sprite.set_texture(0)
+    
+    def on_update(self, delta_time):
+        super().on_update(delta_time)
+        self.questions_left(align_y=-100)
         
 
 class StatisticsViev(Synthesizer):     
@@ -775,9 +903,9 @@ class StatisticsViev(Synthesizer):
             SideButton(
                 text="New Game",
                 font_size = 16,
-                font_color=BUTTON_COLOR_3, 
-                color=BUTTON_COLOR_2, 
-                bg_color=BUTTON_COLOR_1),
+                color_dark=BUTTON_COLOR_3, 
+                color_middle=BUTTON_COLOR_2, 
+                color_light=BUTTON_COLOR_1),
             anchor_y="top",
             align_y=-50,
             anchor_x="center")        
@@ -807,7 +935,6 @@ class StatisticsViev(Synthesizer):
             self._create_label(x, y, text=text, note=note, font=FONT_MENU, font_size=kwargs.get("font_size", 26)) 
                 
     def on_draw(self):
-        # (TODO) rewrite to allow redrawing rather than resetting view (?)
         super().on_draw()
         self.ui_manager.draw()
                       

@@ -1,6 +1,6 @@
 # microtonal_game_synthesizer
 
-> Done by [@Lians-coder](https://github.com/Lians-coder)
+> Made by [@Lians-coder](https://github.com/Lians-coder)
 
 **TL;DR**
 _A simple and straightforward desktop app that lets you play a pitch guessing game - but with ***24-tone equal temperament***! Plus, the Synthesizer mode lets you play freely just for fun._
