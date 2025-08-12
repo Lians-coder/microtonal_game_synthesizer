@@ -1,0 +1,14 @@
+@startuml packages_microtonal_game_synthesizer
+set namespaceSeparator none
+package "defines" as defines {
+}
+package "main" as main {
+}
+package "svg" as svg {
+}
+package "wave" as wave {
+}
+main --> defines
+main --> wave
+svg --> defines
+@enduml

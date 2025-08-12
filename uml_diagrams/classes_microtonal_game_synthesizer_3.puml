@@ -1,0 +1,142 @@
+@startuml classes_microtonal_game_synthesizer
+set namespaceSeparator none
+class "Challenge" as main.Challenge {
+  current_answers : list
+  note : str
+  previous : NoneType
+  q : int
+  q_left : UILabel
+  transition_delay : int
+  transition_timer : NoneType, float
+  waiting_for_click : bool
+  __init__()
+  {abstract}change_texture_back()
+  {abstract}change_texture_on_answ(s, guess)
+  {abstract}feedback()
+  go_to_stats()
+  on_mouse_press(x, y, button, _, audio)
+  on_update(delta_time)
+  questions_left(align_y)
+  set_stats(s)
+  setup(text)
+}
+class "MenuView" as main.MenuView {
+  anchor : UIAnchorLayout
+  background_color : Color
+  grid : UIGridLayout
+  notes : UITextureToggle
+  oct_4 : UITextureToggle
+  oct_5 : UITextureToggle
+  oct_6 : UITextureToggle
+  pitch_label : UILabel
+  pitch_slider : UISlider
+  question_label : UILabel
+  question_slider
+  start_button
+  variant
+  variant_warning : UILabel
+  __init__()
+  add_pitch_things()
+  on_show_view()
+  open_about_button()
+  open_github_button()
+  set_game_variant()
+  set_notes_selected()
+  set_octave_checkboxes()
+  set_questions()
+  start()
+  sync_game_variant()
+  sync_octave_checkboxes()
+  sync_pitch()
+  sync_questions()
+  sync_selected()
+  title()
+}
+class "SideButton" as main.SideButton {
+  size_hint : tuple
+  style : dict
+  text : str
+  __init__(text, font, font_size, size_hint, color_dark, color_middle, color_light)
+}
+class "SliderDisable" as main.SliderDisable {
+  enabled : bool
+  value : int
+  __init__()
+  on_event(event)
+}
+class "StatisticsViev" as main.StatisticsViev {
+  new_game_button
+  reset_stats_button
+  statistics : dict
+  __init__()
+  _set_accuracy(note)
+  create_sprites_with_labels(notes, accuracy, enabled)
+  get_statistics()
+  new_game_button()
+  on_draw()
+  overall_stats()
+  reset_stats_button()
+  setup()
+  {abstract}verbose_hints()
+}
+class "StyledDropdown" as main.StyledDropdown {
+  active_style : dict
+  dropdown_style : dict
+  primary_style : dict
+  value : str
+  __init__(default, options, font, font_size, color_dark, color_middle, color_light, color_darkest)
+}
+class "Synthesizer" as main.Synthesizer {
+  anchor : UIAnchorLayout
+  labels : NoneType, dict
+  open_menu_button
+  sprite_dict : NoneType, dict
+  sprite_dict_inverted : NoneType, dict
+  sprite_list : NoneType, SpriteList
+  ui_manager : UIManager
+  __init__()
+  _create_base_sprite(textures, scale)
+  _create_label(sx, sy, text, note, color, font_size, font, ax, ay)
+  _get_sprite_position(i, x, y, x_offset, step)
+  _get_texture_index(acc)
+  _get_textures(name)
+  {abstract}_set_accuracy(note)
+  _set_angle(i, rotation, off)
+  animate_sprite(dt, s)
+  create_chromatic(accuracy, enabled)
+  create_diatonic(accuracy, enabled)
+  create_microtonal(accuracy, enabled)
+  create_sprites(notes, x, y, x_offset, textures, accuracy, scale, rotation, off, enabled)
+  create_sprites_with_labels(notes, accuracy, enabled)
+  init_sprites_storages()
+  on_draw(color)
+  on_key_press(symbol, _)
+  on_mouse_press(x, y, button, _, audio)
+  on_show_view()
+  on_update(delta_time)
+  open_about_button()
+  open_menu_button()
+  play_note(note)
+  set_ui(text)
+  setup(text)
+  sprites_dict_inversion()
+  title(text)
+}
+class "Training" as main.Training {
+  feedback_labels : list
+  right_sprite : NoneType
+  transition_delay : float
+  __init__()
+  change_texture_back()
+  change_texture_on_answ(s, guess)
+  feedback()
+  on_update(delta_time)
+  setup()
+}
+main.Challenge --|> main.Synthesizer
+main.StatisticsViev --|> main.Synthesizer
+main.Training --|> main.Challenge
+main.SideButton --* main.MenuView : start_button
+main.SliderDisable --* main.MenuView : question_slider
+main.StyledDropdown --* main.MenuView : variant
+@enduml

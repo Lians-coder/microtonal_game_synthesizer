@@ -32,33 +32,7 @@ import os
 
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     os.chdir(sys._MEIPASS)
-    
-    
-# TODO add png checks and creation if needed
-# TODO update ABOUT in the repo (usage, install, screenshots etc)
-# TODO make exe file + linux & mac versions
-# TODO structure source code
 
-# (TODO) document all funcs
-# (TODO) allow to select notes from synth view to practice later
-# (TODO) allow to save json version of customization made
-# (TODO) rewrite private and static methods
-# (TODO) add different timbres
-# (TODO) add other octaves
-# (TODO) allow other non-standard microtonal temperaments
-
-# (TODO) rewrite 0n_update in challenge & training to make it modular
-
-# Synth
-# TODO: add musical output flow to allow several sounds at once + list all presses on top
-# (TODO): add options to select octaves in the play process
-# (TODO): add shades for each sprite
-# TODO: add key bindings for each note
-
-# Statistics
-# (TODO) on_draw: rewrite to allow redrawing rather than resetting view (?)
-# (TODO) verbose_hint: add some more stats - e.g., most confused with, absolute numdesr of questions and answers etc
-# should pop up when hover on sprite with note info
             
 class SliderDisable(UISlider):
     def __init__(self, *args, **kwargs):
